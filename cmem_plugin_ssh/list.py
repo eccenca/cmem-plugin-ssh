@@ -59,7 +59,7 @@ class ListFiles(WorkflowPlugin):
         self.hostname = hostname
         self.port = port
         self.username = username
-        self.authentication_method = AUTHENTICATION_CHOICES[authentication_method]
+        self.authentication_method = authentication_method
         self.private_key = load_private_key(private_key)
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
@@ -79,13 +79,22 @@ class ListFiles(WorkflowPlugin):
     ) -> None:
         """Connect to the ssh client with the selected authentication method"""
         _ = password
-        if self.authentication_method == "Key":
+        if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh_client.connect(
                 hostname=hostname,
                 username=username,
                 pkey=private_key,
                 port=port,
+            )
+        elif self.authentication_method == "key_with_password":
+            pass
+        elif self.authentication_method == "password":
+            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh_client.connect(
+                hostname=self.hostname,
+                username=username,
+                password=password
             )
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:

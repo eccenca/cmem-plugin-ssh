@@ -8,10 +8,12 @@ from paramiko import RSAKey
 
 PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
+KEY_WITH_PASSWORD = "key_with_password"  # noqa: S105
 AUTHENTICATION_CHOICES = OrderedDict(
     {
         PASSWORD: "Password",
         PRIVATE_KEY: "Key",
+        KEY_WITH_PASSWORD: "Key with password protection"
     }
 )
 
