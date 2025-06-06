@@ -8,6 +8,8 @@ from cmem_plugin_ssh.utils import load_private_key
 
 
 class DirectoryParameterType(StringParameterType):
+    """Autocomplete class for folders on the ssh instance"""
+
     def __init__(
         self,
         url_expand: str,
@@ -30,6 +32,7 @@ class DirectoryParameterType(StringParameterType):
         depend_on_parameter_values: list[Any],
         context: PluginContext,
     ) -> list[Autocompletion]:
+        """Autocomplete the folders"""
         _ = context
         _ = query_terms
         result = []
@@ -43,6 +46,6 @@ class DirectoryParameterType(StringParameterType):
         )
         sftp = ssh_client.open_sftp()
         files_and_folders = sftp.listdir()
-        for f in files_and_folders:
-            result.append(Autocompletion(value=f, label=f))
-        return result
+        result = [Autocompletion(value=f, label=f) for f in files_and_folders]
+        self.suggestions = result
+        return self.suggestions
