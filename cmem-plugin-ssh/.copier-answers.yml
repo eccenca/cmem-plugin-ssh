@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+_commit: v7.2.0
+_src_path: gh:eccenca/cmem-plugin-template
+author_mail: louis.westerheide@eccenca.com
+author_name: eccenca GmbH
+github_page: ''
+project_description: List, download and upload files from and to your ssh server as
+    well as execute commands.
+project_slug: ssh
+project_type: plugin
+pypi: true
+
