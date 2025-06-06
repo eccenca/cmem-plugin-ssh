@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext
-from cmem_plugin_base.dataintegration.description import Plugin, PluginParameter
+from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
@@ -21,6 +21,7 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
     description="SSH list files",
     documentation="""
     """,
+    icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     parameters=[
         PluginParameter(name="hostname", label="Hostname", description="Hostname to connect to."),
         PluginParameter(name="port", default_value=22),
@@ -58,15 +59,13 @@ class ListFiles(WorkflowPlugin):
         self.hostname = hostname
         self.port = port
         self.username = username
-        self.authentication_method = authentication_method
+        self.authentication_method = AUTHENTICATION_CHOICES[authentication_method]
         self.private_key = load_private_key(private_key)
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
 
         self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client(
-            self.hostname, self.username, self.private_key, self.port, self.password
-        )
+        self.connect_ssh_client(self.hostname, self.username, self.private_key, self.port, self.password)
 
         self.sftp = self.ssh_client.open_sftp()
 
@@ -80,7 +79,7 @@ class ListFiles(WorkflowPlugin):
     ) -> None:
         """Connect to the ssh client with the selected authentication method"""
         _ = password
-        if self.authentication_method == "key":
+        if self.authentication_method == "Key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh_client.connect(
                 hostname=hostname,
