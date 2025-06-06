@@ -60,12 +60,14 @@ class ListFiles(WorkflowPlugin):
         self.port = port
         self.username = username
         self.authentication_method = authentication_method
-        self.private_key = load_private_key(private_key)
+        self.private_key = load_private_key(private_key, password)
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
 
         self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client(self.hostname, self.username, self.private_key, self.port, self.password)
+        self.connect_ssh_client(
+            self.hostname, self.username, self.private_key, self.port, self.password
+        )
 
         self.sftp = self.ssh_client.open_sftp()
 
@@ -91,11 +93,7 @@ class ListFiles(WorkflowPlugin):
             pass
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh_client.connect(
-                hostname=self.hostname,
-                username=username,
-                password=password
-            )
+            self.ssh_client.connect(hostname=self.hostname, username=username, password=password)
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
         """Execute the workflow task"""

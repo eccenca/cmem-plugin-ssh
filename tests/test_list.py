@@ -15,14 +15,20 @@ def test_ssh() -> None:
         private_key=os.getenv("PRIVATE_KEY"),
         path="",
         password="",
-        authentication_method="key"
+        authentication_method="key",
     )
     print(plugin.authentication_method)
     autocompletion = DirectoryParameterType("", "")
     result = autocompletion.autocomplete(
         context=TestPluginContext(),
         query_terms=[""],
-        depend_on_parameter_values=[plugin.hostname, 22, "lw", os.getenv("PRIVATE_KEY")],
+        depend_on_parameter_values=[
+            plugin.hostname,
+            22,
+            "lw",
+            os.getenv("PRIVATE_KEY"),
+            plugin.password,
+        ],
     )
     for r in result:
         print(r)

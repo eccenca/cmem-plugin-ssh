@@ -24,6 +24,7 @@ class DirectoryParameterType(StringParameterType):
         "port",
         "username",
         "private_key",
+        "password",
     ]
 
     def autocomplete(
@@ -41,7 +42,7 @@ class DirectoryParameterType(StringParameterType):
         ssh_client.connect(
             hostname=depend_on_parameter_values[0],
             username=depend_on_parameter_values[2],
-            pkey=load_private_key(depend_on_parameter_values[3]),
+            pkey=load_private_key(depend_on_parameter_values[3], depend_on_parameter_values[4]),
             port=depend_on_parameter_values[1],
         )
         sftp = ssh_client.open_sftp()
