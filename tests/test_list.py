@@ -17,7 +17,6 @@ def test_ssh() -> None:
         password="",
         authentication_method="key",
     )
-    print(plugin.authentication_method)
     autocompletion = DirectoryParameterType("", "")
     result = autocompletion.autocomplete(
         context=TestPluginContext(),
@@ -30,5 +29,4 @@ def test_ssh() -> None:
             plugin.password,
         ],
     )
-    for r in result:
-        print(r)
+    assert len(result) > 0
