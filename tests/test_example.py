@@ -1,0 +1,90 @@
+"""Plugin tests.
+
+Remove this and other example files after bootstrapping your project.
+"""
+
+import io
+import os
+from collections.abc import Generator
+from typing import Any
+
+import pytest
+from cmem.cmempy.workspace.projects.datasets.dataset import make_new_dataset
+from cmem.cmempy.workspace.projects.project import delete_project, make_new_project
+from cmem.cmempy.workspace.projects.resources.resource import (
+    create_resource,
+    get_resource_response,
+)
+from cmem_plugin_base.testing import TestExecutionContext
+
+from cmem_plugin_ssh.example_transform import Lifetime
+from cmem_plugin_ssh.example_workflow import DollyPlugin
+
+needs_cmem = pytest.mark.skipif(
+    os.environ.get("CMEM_BASE_URI", "") == "", reason="Needs CMEM configuration"
+)
+
+
+class BuildProject:
+    """Build Project Fixture"""
+
+    project_name = "cmem_plugin_ssh_test_project"
+    dataset_name = "sample_dataset"
+    resource_name = "sample_dataset.txt"
+    dataset_type = "text"
+    dataset_content = "cmem_plugin_ssh plugin sample file."
+
+
+@pytest.fixture
+def build_project() -> Generator[BuildProject, Any, None]:
+    """Provide the DI build project incl. assets."""
+    _ = BuildProject()
+    make_new_project(_.project_name)
+    make_new_dataset(
+        project_name=_.project_name,
+        dataset_name=_.dataset_name,
+        dataset_type=_.dataset_type,
+        parameters={"file": _.resource_name},
+        autoconfigure=False,
+    )
+    with io.StringIO(_.dataset_content) as response_file:
+        create_resource(
+            project_name=_.project_name,
+            resource_name=_.resource_name,
+            file_resource=response_file,
+            replace=True,
+        )
+    yield _
+    delete_project(_.project_name)
+
+
+@needs_cmem
+def test_workflow_execution() -> None:
+    """Test plugin execution"""
+    entities = 100
+    values = 10
+
+    plugin = DollyPlugin(number_of_entities=entities, number_of_values=values)
+    result = plugin.execute(inputs=(), context=TestExecutionContext())
+    for item in result.entities:
+        assert len(item.values) == len(result.schema.paths)
+
+
+def test_transform_execution_with_optional_input() -> None:
+    """Test Lifetime with optional input"""
+    result = Lifetime(start_date="2000-05-22").transform(inputs=[])
+    for item in result:
+        assert item == "25"
+
+
+def test_transform_execution_with_inputs() -> None:
+    """Test Lifetime with sequence of inputs."""
+    result = Lifetime(start_date="").transform(inputs=[["2000-05-22", "2021-12-12", "1904-02-29"]])
+    assert list(result) >= ["22", "0", "118"]
+
+
+@needs_cmem
+def test_integration_placeholder(build_project: BuildProject) -> None:
+    """Placeholder to write integration testcase with cmem"""
+    with get_resource_response(build_project.project_name, build_project.resource_name) as response:
+        assert response.text == build_project.dataset_content

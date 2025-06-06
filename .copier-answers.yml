@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+_commit: v7.2.0
+_src_path: gh:eccenca/cmem-plugin-template
+author_mail: louis.westerheide@eccenca.com
+author_name: eccenca GmbH
+github_page: ''
+project_description: Create awesome Knowledge Graphs with eccenca Corporate Memory
+    :-)
+project_slug: ssh
+project_type: plugin
+pypi: true
+
