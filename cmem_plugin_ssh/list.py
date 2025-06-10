@@ -22,18 +22,47 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     parameters=[
-        PluginParameter(name="hostname", label="Hostname", description="Hostname to connect to."),
-        PluginParameter(name="port", default_value=22),
+        PluginParameter(
+            name="hostname",
+            label="Hostname",
+            description="Hostname to connect to."
+            "Usually in the form of an IP address"),
+        PluginParameter(
+            name="port",
+            label="Port",
+            description="The port on which the connection will be tried on. Default is 22.",
+            default_value=22
+        ),
         PluginParameter(
             name="username",
+            label="Username",
+            description="The username of which a connection will be instantiated."
         ),
         PluginParameter(
-            name="authentication_method", param_type=ChoiceParameterType(AUTHENTICATION_CHOICES)
+            name="authentication_method",
+            label="Authentication method",
+            description="The method that is used to connect to the SSH server.",
+            param_type=ChoiceParameterType(AUTHENTICATION_CHOICES)
         ),
-        PluginParameter(name="private_key", param_type=PasswordParameterType(), default_value=""),
-        PluginParameter(name="password", param_type=PasswordParameterType(), default_value=""),
+        PluginParameter(
+            name="private_key",
+            label="Private key",
+            description="Your private key to connect via SSH.",
+            param_type=PasswordParameterType(),
+            default_value=""
+        ),
+        PluginParameter(
+            name="password",
+            label="Password",
+            description="Depending on your authentication method this will either be used to"
+                        "connect via password to SSH or is used to decrypt the SSH private key",
+            param_type=PasswordParameterType(),
+            default_value=""
+        ),
         PluginParameter(
             name="path",
+            label="Path",
+            description="The currently selected path withing your SSH instance.",
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
@@ -60,6 +89,7 @@ class ListFiles(WorkflowPlugin):
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
 
+        # dont think actually connecting is necessary here
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
