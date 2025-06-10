@@ -132,7 +132,6 @@ class ListFiles(WorkflowPlugin):
         self.no_hidden_files = no_hidden_files
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
-        # flag for no hidden files and folders and flag for no subfolders maybbe?
 
         # dont think actually connecting is necessary here
         self.ssh_client = paramiko.SSHClient()
@@ -206,6 +205,8 @@ class ListFiles(WorkflowPlugin):
                 sample_entities=Entities(entities=iter(entities[:10]), schema=generate_schema()),
             )
         )
+
+        self.close_connections()
 
         return Entities(
             entities=iter(entities),
