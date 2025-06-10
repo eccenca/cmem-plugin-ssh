@@ -20,7 +20,7 @@ def generate_schema() -> EntitySchema:
     return EntitySchema(
         type_uri="",
         paths=[
-            EntityPath(path="filePath"),
+            EntityPath(path="file_name"),
             EntityPath(path="size"),
             EntityPath(path="uid"),
             EntityPath(path="gid"),
