@@ -5,13 +5,29 @@ from collections.abc import Sequence
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
-from cmem_plugin_base.dataintegration.entity import Entities
+from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
+from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, list_files_parallel, load_private_key
+
+
+def generate_schema() -> EntitySchema:
+    """Provide the schema for files"""
+    return EntitySchema(
+        type_uri="",
+        paths=[
+            EntityPath(path="filePath"),
+            EntityPath(path="size"),
+            EntityPath(path="uid"),
+            EntityPath(path="gid"),
+            EntityPath(path="mode"),
+            EntityPath(path="atime"),
+            EntityPath(path="mtime"),
+        ],
+    )
 
 
 @Plugin(
@@ -25,39 +41,39 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
         PluginParameter(
             name="hostname",
             label="Hostname",
-            description="Hostname to connect to."
-            "Usually in the form of an IP address"),
+            description="Hostname to connect to.Usually in the form of an IP address",
+        ),
         PluginParameter(
             name="port",
             label="Port",
             description="The port on which the connection will be tried on. Default is 22.",
-            default_value=22
+            default_value=22,
         ),
         PluginParameter(
             name="username",
             label="Username",
-            description="The username of which a connection will be instantiated."
+            description="The username of which a connection will be instantiated.",
         ),
         PluginParameter(
             name="authentication_method",
             label="Authentication method",
             description="The method that is used to connect to the SSH server.",
-            param_type=ChoiceParameterType(AUTHENTICATION_CHOICES)
+            param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
         ),
         PluginParameter(
             name="private_key",
             label="Private key",
             description="Your private key to connect via SSH.",
             param_type=PasswordParameterType(),
-            default_value=""
+            default_value="",
         ),
         PluginParameter(
             name="password",
             label="Password",
             description="Depending on your authentication method this will either be used to"
-                        "connect via password to SSH or is used to decrypt the SSH private key",
+            "connect via password to SSH or is used to decrypt the SSH private key",
             param_type=PasswordParameterType(),
-            default_value=""
+            default_value="",
         ),
         PluginParameter(
             name="path",
@@ -88,6 +104,7 @@ class ListFiles(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
+        # flag for no hidden files and folders and flag for no subfolders maybbe?
 
         # dont think actually connecting is necessary here
         self.ssh_client = paramiko.SSHClient()
@@ -109,16 +126,34 @@ class ListFiles(WorkflowPlugin):
                 pkey=load_private_key(self.private_key, self.password),
                 port=self.port,
             )
-        elif self.authentication_method == "key_with_password":
-            pass
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh_client.connect(
                 hostname=self.hostname, username=self.username, password=self.password
             )
 
-    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
+    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
         _ = context
-        return None
+        entities = []
+        files = list_files_parallel(self.sftp, self.path)
+        for file in files:
+            entities.append(  # noqa: PERF401
+                Entity(
+                    uri=file.filename,
+                    values=[
+                        [file.filename],
+                        [str(file.st_size)],
+                        [str(file.st_uid)],
+                        [str(file.st_gid)],
+                        [str(file.st_mode)],
+                        [str(file.st_atime)],
+                        [str(file.st_mtime)],
+                    ],
+                )
+            )
+        return Entities(
+            entities=iter(entities),
+            schema=generate_schema(),
+        )
