@@ -105,7 +105,6 @@ class ListFiles(WorkflowPlugin):
         password: str | Password,
         path: str,
         no_subfolder: bool,
-
     ):
         self.hostname = hostname
         self.port = port

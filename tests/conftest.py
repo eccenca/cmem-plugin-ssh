@@ -52,7 +52,7 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         password=password,
         authentication_method=authentication_method,
-        no_subfolder=no_subfolder
+        no_subfolder=no_subfolder,
     )
     return TestingEnvironment(
         hostname=hostname,

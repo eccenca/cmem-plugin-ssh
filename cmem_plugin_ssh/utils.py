@@ -32,10 +32,9 @@ def load_private_key(private_key: str | Password, password: str | Password) -> R
 
 
 def list_files_parallel(
-        sftp: SFTPClient,
-        path: str,
-        no_subfolders: bool,
-
+    sftp: SFTPClient,
+    path: str,
+    no_subfolders: bool,
 ) -> list[SFTPAttributes]:
     """List files on ssh instance recursively"""
     all_files = []
@@ -48,11 +47,7 @@ def list_files_parallel(
     for entry in sftp.listdir_attr(path):
         full_path = f"{path.rstrip('/')}/{entry.filename}"
         if entry.st_mode is not None and stat.S_ISDIR(entry.st_mode):
-            all_files.extend(
-                list_files_parallel(
-                    sftp, full_path, no_subfolders
-                )
-            )
+            all_files.extend(list_files_parallel(sftp, full_path, no_subfolders))
         else:
             all_files.append(entry)
     return all_files
