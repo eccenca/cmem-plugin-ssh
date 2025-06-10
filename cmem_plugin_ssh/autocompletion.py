@@ -99,14 +99,12 @@ class DirectoryParameterType(StringParameterType):
                 for f in files_and_folders
                 if f.st_mode is not None and stat.S_ISDIR(f.st_mode)
             ]
+            current_dir = str(sftp.getcwd())
             result = [
-                Autocompletion(value=selected_path + "/" + f, label=selected_path + "/" + f)
+                Autocompletion(value=current_dir + "/" + f, label=current_dir + "/" + f)
                 for f in folders
             ]
-            parent_folder = (
-                selected_path[: selected_path.rfind("/")] if "/" in selected_path else ".."
-            )
-            result.append(Autocompletion(value=parent_folder, label=parent_folder))
+            result.append(Autocompletion(value=current_dir + "/..", label=current_dir + "/.."))
             self.suggestions = result
             sftp.close()
             ssh_client.close()

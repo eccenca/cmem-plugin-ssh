@@ -38,8 +38,9 @@ def list_files_parallel(
 ) -> list[SFTPAttributes]:
     """List files on ssh instance recursively"""
     all_files = []
+    files_and_folders = sftp.listdir_attr() if not path else sftp.listdir_attr(path)
     if no_subfolders:
-        for entry in sftp.listdir_attr(path):
+        for entry in files_and_folders:
             if entry.st_mode is not None and not stat.S_ISDIR(entry.st_mode):
                 all_files.append(entry)  # noqa: PERF401
         return all_files
