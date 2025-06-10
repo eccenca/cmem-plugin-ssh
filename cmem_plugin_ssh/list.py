@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 
 import paramiko
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
@@ -138,11 +138,20 @@ class ListFiles(WorkflowPlugin):
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
-        _ = context
+        context.report.update(
+            ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
+        )
         entities = []
         files = list_files_parallel(self.sftp, self.path)
+
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(files), operation="wait", operation_desc="files listed."
+            )
+        )
+
         for file in files:
-            entities.append(  # noqa: PERF401
+            entities.append(
                 Entity(
                     uri=file.filename,
                     values=[
@@ -156,6 +165,26 @@ class ListFiles(WorkflowPlugin):
                     ],
                 )
             )
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="write",
+                    operation_desc="entities generated",
+                )
+            )
+
+
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(entities),
+                operation="done",
+                operation_desc="entities generated",
+                sample_entities=Entities(
+                    entities=iter(entities[:10]), schema=generate_schema()
+                ),
+            )
+        )
+
         return Entities(
             entities=iter(entities),
             schema=generate_schema(),
