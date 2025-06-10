@@ -9,6 +9,7 @@ from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, list_files_parallel, load_private_key
@@ -104,6 +105,8 @@ class ListFiles(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
+        self.input_ports=FixedNumberOfInputs([])
+        self.output_port = FixedSchemaPort(schema=generate_schema())
         # flag for no hidden files and folders and flag for no subfolders maybbe?
 
         # dont think actually connecting is necessary here
