@@ -26,6 +26,12 @@ def test_ssh(testing_environment: TestingEnvironment) -> None:
     assert len(result) > 0
 
     plugin.path = "test_2"
+    plugin.no_subfolder = True
     result_execution = plugin.execute(inputs=[], context=TestExecutionContext())
 
-    assert len(list(result_execution.entities)) > 0
+    assert len(list(result_execution.entities)) == 1
+
+
+# test no hidden files
+# test no hidden folders
+# test no subfolders

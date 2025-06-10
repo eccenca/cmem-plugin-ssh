@@ -31,13 +31,28 @@ def load_private_key(private_key: str | Password, password: str | Password) -> R
     return paramiko.RSAKey.from_private_key(key_file, password)
 
 
-def list_files_parallel(sftp: SFTPClient, path: str) -> list[SFTPAttributes]:
+def list_files_parallel(
+        sftp: SFTPClient,
+        path: str,
+        no_subfolders: bool,
+
+) -> list[SFTPAttributes]:
     """List files on ssh instance recursively"""
     all_files = []
+    if no_subfolders:
+        for entry in sftp.listdir_attr(path):
+            if entry.st_mode is not None and not stat.S_ISDIR(entry.st_mode):
+                all_files.append(entry)  # noqa: PERF401
+        return all_files
+
     for entry in sftp.listdir_attr(path):
         full_path = f"{path.rstrip('/')}/{entry.filename}"
         if entry.st_mode is not None and stat.S_ISDIR(entry.st_mode):
-            all_files.extend(list_files_parallel(sftp, full_path))
+            all_files.extend(
+                list_files_parallel(
+                    sftp, full_path, no_subfolders
+                )
+            )
         else:
             all_files.append(entry)
     return all_files

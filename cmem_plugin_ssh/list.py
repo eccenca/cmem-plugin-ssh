@@ -90,18 +90,6 @@ def generate_schema() -> EntitySchema:
             "will be listed.",
             default_value=False,
         ),
-        PluginParameter(
-            name="no_hidden_folder",
-            label="No hidden folder",
-            description="When this flag is set, only files from non-hidden folders will be listed.",
-            default_value=False,
-        ),
-        PluginParameter(
-            name="no_hidden_files",
-            label="No hidden files",
-            description="When this flag is set, only non-hidden files will be listed.",
-            default_value=False,
-        ),
     ],
 )
 class ListFiles(WorkflowPlugin):
@@ -117,8 +105,7 @@ class ListFiles(WorkflowPlugin):
         password: str | Password,
         path: str,
         no_subfolder: bool,
-        no_hidden_folder: bool,
-        no_hidden_files: bool,
+
     ):
         self.hostname = hostname
         self.port = port
@@ -128,8 +115,6 @@ class ListFiles(WorkflowPlugin):
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
         self.no_subfolder = no_subfolder
-        self.no_hidden_folder = no_hidden_folder
-        self.no_hidden_files = no_hidden_files
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
 
@@ -166,7 +151,11 @@ class ListFiles(WorkflowPlugin):
             ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
         )
         entities = []
-        files = list_files_parallel(self.sftp, self.path)
+        files = list_files_parallel(
+            self.sftp,
+            self.path,
+            self.no_subfolder,
+        )
 
         context.report.update(
             ExecutionReport(

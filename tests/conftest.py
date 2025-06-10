@@ -29,6 +29,7 @@ class TestingEnvironment:
     private_key: str
     password: str
     path: str
+    no_subfolder: bool
     list_plugin: ListFiles
 
 
@@ -43,8 +44,6 @@ def testing_environment() -> TestingEnvironment:
     password = get_env_or_skip("SSH_PASSWORD")
     path = ""
     no_subfolder = False
-    no_hidden_folder = False
-    no_hidden_files = False
     list_plugin = ListFiles(
         hostname=hostname,
         port=port,
@@ -53,9 +52,7 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         password=password,
         authentication_method=authentication_method,
-        no_subfolder=no_subfolder,
-        no_hidden_files=no_hidden_files,
-        no_hidden_folder=no_hidden_folder,
+        no_subfolder=no_subfolder
     )
     return TestingEnvironment(
         hostname=hostname,
@@ -65,5 +62,6 @@ def testing_environment() -> TestingEnvironment:
         private_key=private_key,
         password=password,
         path=path,
+        no_subfolder=no_subfolder,
         list_plugin=list_plugin,
     )
