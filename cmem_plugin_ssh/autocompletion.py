@@ -1,10 +1,29 @@
+import stat
 from typing import Any, ClassVar
 
 import paramiko
 from cmem_plugin_base.dataintegration.context import PluginContext
 from cmem_plugin_base.dataintegration.types import Autocompletion, StringParameterType
+from paramiko import SSHClient
 
 from cmem_plugin_ssh.utils import load_private_key
+
+
+def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHClient) -> None:
+    """Connect to the ssh client with the selected authentication method"""
+    if depend_on_parameter_values[5] == "key" or "key_with_password":
+        ssh_client.connect(
+            hostname=depend_on_parameter_values[0],
+            username=depend_on_parameter_values[2],
+            pkey=load_private_key(depend_on_parameter_values[3], depend_on_parameter_values[4]),
+            port=depend_on_parameter_values[1],
+        )
+    elif depend_on_parameter_values[5] == "password":
+        ssh_client.connect(
+            hostname=depend_on_parameter_values[0],
+            username=depend_on_parameter_values[2],
+            password=depend_on_parameter_values[4],
+        )
 
 
 class DirectoryParameterType(StringParameterType):
@@ -25,6 +44,8 @@ class DirectoryParameterType(StringParameterType):
         "username",
         "private_key",
         "password",
+        "authentication_method",
+        "path",
     ]
 
     def autocomplete(
@@ -35,18 +56,55 @@ class DirectoryParameterType(StringParameterType):
     ) -> list[Autocompletion]:
         """Autocomplete the folders"""
         _ = context
-        _ = query_terms
         result = []
+        entered_directory = "".join(query_terms)
+        selected_path = depend_on_parameter_values[6]
+
+        # connect to client
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
-        ssh_client.connect(
-            hostname=depend_on_parameter_values[0],
-            username=depend_on_parameter_values[2],
-            pkey=load_private_key(depend_on_parameter_values[3], depend_on_parameter_values[4]),
-            port=depend_on_parameter_values[1],
-        )
+        connect_ssh_client(depend_on_parameter_values, ssh_client)
+
+        # open sftp for file getting
         sftp = ssh_client.open_sftp()
-        files_and_folders = sftp.listdir()
-        result = [Autocompletion(value=f, label=f) for f in files_and_folders]
-        self.suggestions = result
+
+        # file getting logic here
+        if selected_path == "":
+            sftp.chdir(None)
+            files_and_folders = sftp.listdir_attr()
+            folders = [f.filename for f in files_and_folders if stat.S_ISDIR(f.st_mode)]
+            result = [Autocompletion(value=f, label=f) for f in folders]
+            result.append(Autocompletion(value="..", label=".."))
+            self.suggestions = result
+            sftp.close()
+            ssh_client.close()
+            return self.suggestions
+
+        if selected_path != "" and entered_directory == "":
+            sftp.close()
+            ssh_client.close()
+            return self.suggestions
+
+        if entered_directory:
+            sftp.chdir(entered_directory)
+            files_and_folders = sftp.listdir_attr()
+            folders = [f.filename for f in files_and_folders if stat.S_ISDIR(f.st_mode)]
+            result = [
+                Autocompletion(value=selected_path + "/" + f, label=selected_path + "/" + f)
+                for f in folders
+            ]
+            parent_folder = (
+                selected_path[:selected_path.rfind("/")]
+                if "/" in selected_path
+                else ".."
+            )
+            result.append(Autocompletion(value=parent_folder, label=parent_folder))
+            self.suggestions = result
+            sftp.close()
+            ssh_client.close()
+            return self.suggestions
+
+        # close client
+        sftp.close()
+        ssh_client.close()
         return self.suggestions

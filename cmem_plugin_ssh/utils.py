@@ -13,8 +13,11 @@ AUTHENTICATION_CHOICES = OrderedDict(
 )
 
 
-def load_private_key(private_key: str | Password, password: str | Password) -> RSAKey:
+def load_private_key(private_key: str | Password, password: str | Password) -> RSAKey | None:
     """Load the private key correctly"""
+    # TODO Change this to be more general
+    if not private_key:
+        return None
     pkey = private_key if isinstance(private_key, str) else private_key.decrypt()
     password = password if isinstance(password, str) else password.decrypt()
     pkey = pkey.replace(

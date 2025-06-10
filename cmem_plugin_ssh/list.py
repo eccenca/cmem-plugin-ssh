@@ -31,10 +31,7 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
         PluginParameter(
             name="authentication_method", param_type=ChoiceParameterType(AUTHENTICATION_CHOICES)
         ),
-        PluginParameter(
-            name="private_key",
-            param_type=PasswordParameterType(),
-        ),
+        PluginParameter(name="private_key", param_type=PasswordParameterType(), default_value=""),
         PluginParameter(name="password", param_type=PasswordParameterType(), default_value=""),
         PluginParameter(
             name="path",
@@ -65,11 +62,7 @@ class ListFiles(WorkflowPlugin):
         self.path = path
 
         self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client(
-            self.hostname, self.username, self.private_key, self.port, self.password
-        )
-
-        self.sftp = self.ssh_client.open_sftp()
+        self.sftp = None
 
     def close_connections(self) -> None:
         """Close connection from sftp and ssh"""

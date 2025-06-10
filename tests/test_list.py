@@ -7,7 +7,7 @@ from cmem_plugin_ssh.list import ListFiles
 
 
 def test_ssh() -> None:
-    """Test ssh basic cfiguration"""
+    """Test ssh basic configuration"""
     plugin = ListFiles(
         hostname="85.215.151.19",
         port=22,
@@ -27,6 +27,8 @@ def test_ssh() -> None:
             "lw",
             os.getenv("PRIVATE_KEY"),
             plugin.password,
+            plugin.authentication_method,
+            "",
         ],
     )
     assert len(result) > 0
