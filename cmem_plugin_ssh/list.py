@@ -83,6 +83,25 @@ def generate_schema() -> EntitySchema:
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
+        PluginParameter(
+            name="no_subfolder",
+            label="No subfolder",
+            description="When this flag is set, only files from the current directory "
+            "will be listed.",
+            default_value=False,
+        ),
+        PluginParameter(
+            name="no_hidden_folder",
+            label="No hidden folder",
+            description="When this flag is set, only files from non-hidden folders will be listed.",
+            default_value=False,
+        ),
+        PluginParameter(
+            name="no_hidden_files",
+            label="No hidden files",
+            description="When this flag is set, only non-hidden files will be listed.",
+            default_value=False,
+        ),
     ],
 )
 class ListFiles(WorkflowPlugin):
@@ -97,6 +116,9 @@ class ListFiles(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
+        no_subfolder: bool,
+        no_hidden_folder: bool,
+        no_hidden_files: bool,
     ):
         self.hostname = hostname
         self.port = port
@@ -105,7 +127,10 @@ class ListFiles(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
-        self.input_ports=FixedNumberOfInputs([])
+        self.no_subfolder = no_subfolder
+        self.no_hidden_folder = no_hidden_folder
+        self.no_hidden_files = no_hidden_files
+        self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
         # flag for no hidden files and folders and flag for no subfolders maybbe?
 
@@ -173,15 +198,12 @@ class ListFiles(WorkflowPlugin):
                 )
             )
 
-
         context.report.update(
             ExecutionReport(
                 entity_count=len(entities),
                 operation="done",
                 operation_desc="entities generated",
-                sample_entities=Entities(
-                    entities=iter(entities[:10]), schema=generate_schema()
-                ),
+                sample_entities=Entities(entities=iter(entities[:10]), schema=generate_schema()),
             )
         )
 
