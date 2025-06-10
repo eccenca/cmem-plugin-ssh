@@ -9,7 +9,6 @@ from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from paramiko import RSAKey
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
@@ -57,36 +56,36 @@ class ListFiles(WorkflowPlugin):
         self.port = port
         self.username = username
         self.authentication_method = authentication_method
-        self.private_key = load_private_key(private_key, password)
+        self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
 
         self.ssh_client = paramiko.SSHClient()
-        self.sftp = None
+        self.connect_ssh_client()
+        self.sftp = self.ssh_client.open_sftp()
 
     def close_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
 
-    def connect_ssh_client(
-        self, hostname: str, username: str, private_key: RSAKey, port: int, password: str | Password
-    ) -> None:
+    def connect_ssh_client(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
-        _ = password
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             self.ssh_client.connect(
-                hostname=hostname,
-                username=username,
-                pkey=private_key,
-                port=port,
+                hostname=self.hostname,
+                username=self.username,
+                pkey=load_private_key(self.private_key, self.password),
+                port=self.port,
             )
         elif self.authentication_method == "key_with_password":
             pass
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh_client.connect(hostname=self.hostname, username=username, password=password)
+            self.ssh_client.connect(
+                hostname=self.hostname, username=self.username, password=self.password
+            )
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
         """Execute the workflow task"""

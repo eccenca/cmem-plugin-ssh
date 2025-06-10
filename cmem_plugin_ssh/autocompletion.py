@@ -1,3 +1,5 @@
+"""Autocompletion for plugin parameters"""
+
 import stat
 from typing import Any, ClassVar
 
@@ -72,7 +74,11 @@ class DirectoryParameterType(StringParameterType):
         if selected_path == "":
             sftp.chdir(None)
             files_and_folders = sftp.listdir_attr()
-            folders = [f.filename for f in files_and_folders if stat.S_ISDIR(f.st_mode)]
+            folders = [
+                f.filename
+                for f in files_and_folders
+                if f.st_mode is not None and stat.S_ISDIR(f.st_mode)
+            ]
             result = [Autocompletion(value=f, label=f) for f in folders]
             result.append(Autocompletion(value="..", label=".."))
             self.suggestions = result
@@ -88,15 +94,17 @@ class DirectoryParameterType(StringParameterType):
         if entered_directory:
             sftp.chdir(entered_directory)
             files_and_folders = sftp.listdir_attr()
-            folders = [f.filename for f in files_and_folders if stat.S_ISDIR(f.st_mode)]
+            folders = [
+                f.filename
+                for f in files_and_folders
+                if f.st_mode is not None and stat.S_ISDIR(f.st_mode)
+            ]
             result = [
                 Autocompletion(value=selected_path + "/" + f, label=selected_path + "/" + f)
                 for f in folders
             ]
             parent_folder = (
-                selected_path[:selected_path.rfind("/")]
-                if "/" in selected_path
-                else ".."
+                selected_path[: selected_path.rfind("/")] if "/" in selected_path else ".."
             )
             result.append(Autocompletion(value=parent_folder, label=parent_folder))
             self.suggestions = result

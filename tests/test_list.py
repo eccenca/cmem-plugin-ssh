@@ -1,34 +1,26 @@
-import os
+"""Tests for list plugin"""
 
 from cmem_plugin_base.testing import TestPluginContext
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
-from cmem_plugin_ssh.list import ListFiles
+from tests.conftest import TestingEnvironment
 
 
-def test_ssh() -> None:
+def test_ssh(testing_environment: TestingEnvironment) -> None:
     """Test ssh basic configuration"""
-    plugin = ListFiles(
-        hostname="85.215.151.19",
-        port=22,
-        username="lw",
-        private_key=os.getenv("PRIVATE_KEY"),
-        path="",
-        password="",
-        authentication_method="key",
-    )
+    plugin = testing_environment.list_plugin
     autocompletion = DirectoryParameterType("", "")
     result = autocompletion.autocomplete(
         context=TestPluginContext(),
         query_terms=[""],
         depend_on_parameter_values=[
             plugin.hostname,
-            22,
-            "lw",
-            os.getenv("PRIVATE_KEY"),
+            plugin.port,
+            plugin.username,
+            plugin.private_key,
             plugin.password,
             plugin.authentication_method,
-            "",
+            plugin.path,
         ],
     )
     assert len(result) > 0
