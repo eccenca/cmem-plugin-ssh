@@ -80,7 +80,7 @@ DOCKER_COMPOSE_FILE = "docker-compose.yml"
 def ssh_test_container():  # noqa: ANN201
     """Start the SSH test container before tests and stop it after."""
     subprocess.run(  # noqa: S603
-        ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],  # noqa: S607
+        ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],  # noqa: S607
         cwd=DOCKER_COMPOSE_DIR,
         check=True,
     )
@@ -89,7 +89,7 @@ def ssh_test_container():  # noqa: ANN201
 
     yield
     subprocess.run(  # noqa: S603
-        ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],  # noqa: S607
+        ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],  # noqa: S607
         cwd=DOCKER_COMPOSE_DIR,
         check=True,
     )
