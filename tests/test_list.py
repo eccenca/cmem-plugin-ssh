@@ -24,9 +24,7 @@ def test_ssh(testing_environment: TestingEnvironment) -> None:
         ],
     )
     assert len(result) > 0
-
-    plugin.path = "test_2"
-    plugin.no_subfolder = True
+    plugin.path = "volume"
     result_execution = plugin.execute(inputs=[], context=TestExecutionContext())
 
     assert len(list(result_execution.entities)) == 1

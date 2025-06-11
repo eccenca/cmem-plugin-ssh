@@ -1,0 +1,8 @@
+services:
+  ssh-test:
+    build: .
+    container_name: ssh-test-container
+    ports:
+      - "2222:22"
+    volumes:
+      - ./volume:/home/testuser/volume

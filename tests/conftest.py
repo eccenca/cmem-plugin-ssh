@@ -1,5 +1,7 @@
 """Pytest configuration"""
 
+import subprocess
+import time
 from dataclasses import dataclass
 from os import environ
 
@@ -64,4 +66,27 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         no_subfolder=no_subfolder,
         list_plugin=list_plugin,
+    )
+
+
+DOCKER_COMPOSE_DIR = "/home/lw/eccenca/plugin/cmem-plugin-ssh/docker"
+DOCKER_COMPOSE_FILE = "docker-compose.yml"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ssh_test_container():  # noqa: ANN201
+    """Start the SSH test container before tests and stop it after."""
+    subprocess.run(  # noqa: S603
+        ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],  # noqa: S607
+        cwd=DOCKER_COMPOSE_DIR,
+        check=True,
+    )
+
+    time.sleep(5)
+
+    yield
+    subprocess.run(  # noqa: S603
+        ["docker", "compose", "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],  # noqa: S607
+        cwd=DOCKER_COMPOSE_DIR,
+        check=True,
     )
