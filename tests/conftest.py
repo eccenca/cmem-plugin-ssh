@@ -69,7 +69,7 @@ def testing_environment() -> TestingEnvironment:
     )
 
 
-DOCKER_COMPOSE_DIR = "/home/lw/eccenca/plugin/cmem-plugin-ssh/docker"
+DOCKER_COMPOSE_DIR = "../docker"
 DOCKER_COMPOSE_FILE = "docker-compose.yml"
 
 
