@@ -4,6 +4,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 from os import environ
+from pathlib import Path
 
 import pytest
 
@@ -69,7 +70,7 @@ def testing_environment() -> TestingEnvironment:
     )
 
 
-DOCKER_COMPOSE_DIR = "../docker"
+DOCKER_COMPOSE_DIR =  Path(__file__).parent.parent / "docker"
 DOCKER_COMPOSE_FILE = "docker-compose.yml"
 
 
