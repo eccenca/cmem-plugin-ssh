@@ -1,5 +1,6 @@
 """Pytest configuration"""
 
+import shutil
 import subprocess
 import time
 from dataclasses import dataclass
@@ -72,6 +73,13 @@ def testing_environment() -> TestingEnvironment:
     )
 
 
+def get_compose_cmd() -> list[str]:
+    """Get the correct compose command for environment"""
+    if shutil.which("docker-compose"):
+        return ["docker-compose"]
+    return ["docker", "compose"]
+
+
 DOCKER_COMPOSE_DIR = Path(__file__).parent.parent / "docker"
 DOCKER_COMPOSE_FILE = "docker-compose.yml"
 
@@ -80,7 +88,7 @@ DOCKER_COMPOSE_FILE = "docker-compose.yml"
 def ssh_test_container():  # noqa: ANN201
     """Start the SSH test container before tests and stop it after."""
     subprocess.run(  # noqa: S603
-        ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],  # noqa: S607
+        [*get_compose_cmd(), "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],
         cwd=DOCKER_COMPOSE_DIR,
         check=True,
     )
@@ -89,7 +97,7 @@ def ssh_test_container():  # noqa: ANN201
 
     yield
     subprocess.run(  # noqa: S603
-        ["docker-compose", "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],  # noqa: S607
+        [*get_compose_cmd(), "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],
         cwd=DOCKER_COMPOSE_DIR,
         check=True,
     )
