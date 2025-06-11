@@ -25,6 +25,8 @@ def get_env_or_skip(key: str, message: str | None = None) -> str:
 class TestingEnvironment:
     """Testing Environment"""
 
+    __test__ = False
+
     hostname: str
     port: int
     username: str
