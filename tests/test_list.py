@@ -5,6 +5,8 @@ from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from tests.conftest import TestingEnvironment
 
+NO_OF_FILES = 2
+
 
 def test_ssh(testing_environment: TestingEnvironment) -> None:
     """Test ssh basic configuration"""
@@ -27,4 +29,4 @@ def test_ssh(testing_environment: TestingEnvironment) -> None:
     plugin.path = "volume"
     result_execution = plugin.execute(inputs=[], context=TestExecutionContext())
 
-    assert len(list(result_execution.entities)) == 2
+    assert len(list(result_execution.entities)) == NO_OF_FILES
