@@ -2,7 +2,6 @@
 
 import shutil
 import subprocess
-import time
 from dataclasses import dataclass
 from os import environ
 from pathlib import Path
@@ -37,7 +36,7 @@ class TestingEnvironment:
     path: str
     no_subfolder: bool
     list_plugin: ListFiles
-    no_of_files: int = 11
+    no_of_files: int = 12
 
 
 @pytest.fixture
@@ -93,9 +92,6 @@ def ssh_test_container():  # noqa: ANN201
         cwd=DOCKER_COMPOSE_DIR,
         check=True,
     )
-
-    time.sleep(5)
-
     yield
     subprocess.run(  # noqa: S603
         [*get_compose_cmd(), "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],
