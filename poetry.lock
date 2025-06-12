@@ -1757,6 +1757,21 @@ files = [
 six = "*"
 
 [[package]]
+name = "types-paramiko"
+version = "3.5.0.20250516"
+description = "Typing stubs for paramiko"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "types_paramiko-3.5.0.20250516-py3-none-any.whl", hash = "sha256:76ac5cbc0c04d36635ac080f301a864f698ef06b64c3a01a33dc657bd413b675"},
+    {file = "types_paramiko-3.5.0.20250516.tar.gz", hash = "sha256:8c2ac59648c16c5469aa0559abdb758a0f67f9f7cf36164b64654f7b6c2ebfb0"},
+]
+
+[package.dependencies]
+cryptography = ">=37.0.0"
+
+[[package]]
 name = "typing-extensions"
 version = "4.14.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -1894,4 +1909,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "0742678475ca9e2d5c79860af1f9a640191e74258d8055a66cde632f053d223c"
+content-hash = "29e8b0eaca33e8e5b9faa1cdc5b7bb96573bb1501991a281b7d653fd069bbb72"
