@@ -46,6 +46,16 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
 
     autocompletion_result = autocompletion.autocomplete(
+        query_terms=[""],
+        depend_on_parameter_values=depends_on,
+        context=TestPluginContext(),
+    )
+    autocompletion_values = [a.value for a in autocompletion_result]
+    assert "/home/testuser/volume/.." in autocompletion_values
+    assert "/home/testuser/volume/TextFiles" in autocompletion_values
+    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
+
+    autocompletion_result = autocompletion.autocomplete(
         query_terms=["volume/MoreTextFiles"],
         depend_on_parameter_values=depends_on,
         context=TestPluginContext(),
@@ -65,3 +75,14 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     autocompletion_values = [a.value for a in autocompletion_result]
     assert "/home/testuser" in autocompletion_values
     assert "/home/.." in autocompletion_values
+
+    depends_on[6] = ""
+    autocompletion_result = autocompletion.autocomplete(
+        query_terms=[""],
+        depend_on_parameter_values=depends_on,
+        context=TestPluginContext(),
+    )
+    autocompletion_values = [a.value for a in autocompletion_result]
+    assert "/home/testuser/volume" in autocompletion_values
+    assert "/home/testuser/.ssh" in autocompletion_values
+    assert "/home/testuser/.." in autocompletion_values
