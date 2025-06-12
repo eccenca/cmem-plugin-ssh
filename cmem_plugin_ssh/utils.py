@@ -45,7 +45,7 @@ def list_files_parallel(
                 all_files.append(entry)  # noqa: PERF401
         return all_files
 
-    for entry in sftp.listdir_attr(path):
+    for entry in files_and_folders:
         full_path = f"{path.rstrip('/')}/{entry.filename}"
         if entry.st_mode is not None and stat.S_ISDIR(entry.st_mode):
             all_files.extend(list_files_parallel(sftp, full_path, no_subfolders))

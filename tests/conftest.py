@@ -37,6 +37,7 @@ class TestingEnvironment:
     path: str
     no_subfolder: bool
     list_plugin: ListFiles
+    no_of_files: int = 11
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ def testing_environment() -> TestingEnvironment:
     authentication_method = "key"
     private_key = get_env_or_skip("SSH_PRIVATE_KEY")
     password = get_env_or_skip("SSH_PASSWORD")
-    path = ""
+    path = "volume"
     no_subfolder = False
     list_plugin = ListFiles(
         hostname=hostname,
