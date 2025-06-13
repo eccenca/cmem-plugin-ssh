@@ -13,7 +13,7 @@ from cmem_plugin_ssh.utils import load_private_key
 
 def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHClient) -> None:
     """Connect to the ssh client with the selected authentication method"""
-    if depend_on_parameter_values[5] == "key" or "key_with_password":
+    if depend_on_parameter_values[5] == "key":
         ssh_client.connect(
             hostname=depend_on_parameter_values[0],
             username=depend_on_parameter_values[2],

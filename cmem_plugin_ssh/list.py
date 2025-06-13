@@ -84,6 +84,12 @@ def generate_schema() -> EntitySchema:
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
         PluginParameter(
+            name="regex",
+            label="Regular expression",
+            description="A regular expression used to define which files will get listed.",
+            default_value="^.*$",
+        ),
+        PluginParameter(
             name="no_subfolder",
             label="No subfolder",
             description="When this flag is set, only files from the current directory "
@@ -104,6 +110,7 @@ class ListFiles(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
+        regex: str,
         no_subfolder: bool,
     ):
         self.hostname = hostname
@@ -113,6 +120,7 @@ class ListFiles(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
+        self.regex = regex
         self.no_subfolder = no_subfolder
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
