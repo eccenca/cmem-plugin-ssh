@@ -41,7 +41,8 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     )
 
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume/.." in autocompletion_values
+    assert "/home/testuser" in autocompletion_values
+    assert "/home/testuser/volume" in autocompletion_values
     assert "/home/testuser/volume/TextFiles" in autocompletion_values
     assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
 
@@ -51,7 +52,8 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
         context=TestPluginContext(),
     )
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume/.." in autocompletion_values
+    assert "/home/testuser" in autocompletion_values
+    assert "/home/testuser/volume" in autocompletion_values
     assert "/home/testuser/volume/TextFiles" in autocompletion_values
     assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
 
@@ -62,7 +64,8 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     )
 
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume/MoreTextFiles/.." in autocompletion_values
+    assert "/home/testuser/volume" in autocompletion_values
+    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
     assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles" in autocompletion_values
     assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles2" in autocompletion_values
 
@@ -74,7 +77,7 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
 
     autocompletion_values = [a.value for a in autocompletion_result]
     assert "/home/testuser" in autocompletion_values
-    assert "/home/.." in autocompletion_values
+    assert "/home" in autocompletion_values
 
     depends_on[6] = ""
     autocompletion_result = autocompletion.autocomplete(
@@ -85,4 +88,4 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     autocompletion_values = [a.value for a in autocompletion_result]
     assert "/home/testuser/volume" in autocompletion_values
     assert "/home/testuser/.ssh" in autocompletion_values
-    assert "/home/testuser/.." in autocompletion_values
+    assert "/home/testuser" in autocompletion_values
