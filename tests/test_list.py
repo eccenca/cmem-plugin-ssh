@@ -141,3 +141,10 @@ def test_plugin_nonexistent_directory(testing_environment: TestingEnvironment) -
     plugin.path = "non/existent/path"
     with pytest.raises(FileNotFoundError):
         plugin.execute(inputs=[], context=TestExecutionContext())
+
+
+def test_preview_action(testing_environment: TestingEnvironment) -> None:
+    """Test preview action"""
+    plugin = testing_environment.list_plugin
+    preview = plugin.preview_results()
+    assert "RootFile.txt" in preview
