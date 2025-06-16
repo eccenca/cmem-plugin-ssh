@@ -12,7 +12,8 @@ from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, list_files_parallel, load_private_key
+from cmem_plugin_ssh.retrieval import SSHRetrieval
+from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
 
 
 def generate_schema() -> EntitySchema:
@@ -110,8 +111,8 @@ class ListFiles(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
-        regex: str,
         no_subfolder: bool,
+        regex: str = "",
     ):
         self.hostname = hostname
         self.port = port
@@ -120,8 +121,8 @@ class ListFiles(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
-        self.regex = regex
         self.no_subfolder = no_subfolder
+        self.regex = rf"{regex}"
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
 
@@ -158,12 +159,13 @@ class ListFiles(WorkflowPlugin):
             ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
         )
         entities = []
-        files = list_files_parallel(
-            self.sftp,
-            self.path,
-            self.no_subfolder,
-        )
 
+        retrieval = SSHRetrieval(
+            sftp=self.sftp,
+            no_subfolder=self.no_subfolder,
+            regex=self.regex,
+        )
+        files = retrieval.list_files_parallel(files=[], context=context, path=self.path)
         context.report.update(
             ExecutionReport(
                 entity_count=len(files), operation="wait", operation_desc="files listed."

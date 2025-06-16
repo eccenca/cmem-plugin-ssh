@@ -34,6 +34,7 @@ class TestingEnvironment:
     private_key: str
     password: str
     path: str
+    regex: str
     no_subfolder: bool
     list_plugin: ListFiles
     no_of_files: int = 12
@@ -49,6 +50,7 @@ def testing_environment() -> TestingEnvironment:
     private_key = get_env_or_skip("SSH_PRIVATE_KEY")
     password = get_env_or_skip("SSH_PASSWORD")
     path = "volume"
+    regex = "^.*$"
     no_subfolder = False
     list_plugin = ListFiles(
         hostname=hostname,
@@ -56,6 +58,7 @@ def testing_environment() -> TestingEnvironment:
         username=username,
         private_key=private_key,
         path=path,
+        regex=regex,
         password=password,
         authentication_method=authentication_method,
         no_subfolder=no_subfolder,
@@ -69,6 +72,7 @@ def testing_environment() -> TestingEnvironment:
         password=password,
         path=path,
         no_subfolder=no_subfolder,
+        regex=regex,
         list_plugin=list_plugin,
     )
 

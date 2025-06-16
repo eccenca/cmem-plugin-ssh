@@ -1,14 +1,11 @@
 """Utils for SSH plugins"""
 
 import io
-import stat
 from collections import OrderedDict
 
 import paramiko
 from cmem_plugin_base.dataintegration.parameter.password import Password
 from paramiko import RSAKey
-from paramiko.sftp_attr import SFTPAttributes
-from paramiko.sftp_client import SFTPClient
 
 PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
@@ -29,26 +26,3 @@ def load_private_key(private_key: str | Password, password: str | Password) -> R
     if not password:
         return paramiko.RSAKey.from_private_key(key_file)
     return paramiko.RSAKey.from_private_key(key_file, password)
-
-
-def list_files_parallel(
-    sftp: SFTPClient,
-    path: str,
-    no_subfolders: bool,
-) -> list[SFTPAttributes]:
-    """List files on ssh instance recursively"""
-    all_files = []
-    files_and_folders = sftp.listdir_attr() if not path else sftp.listdir_attr(path)
-    if no_subfolders:
-        for entry in files_and_folders:
-            if entry.st_mode is not None and not stat.S_ISDIR(entry.st_mode):
-                all_files.append(entry)  # noqa: PERF401
-        return all_files
-
-    for entry in files_and_folders:
-        full_path = f"{path.rstrip('/')}/{entry.filename}"
-        if entry.st_mode is not None and stat.S_ISDIR(entry.st_mode):
-            all_files.extend(list_files_parallel(sftp, full_path, no_subfolders))
-        else:
-            all_files.append(entry)
-    return all_files
