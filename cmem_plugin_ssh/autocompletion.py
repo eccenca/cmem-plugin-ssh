@@ -21,10 +21,16 @@ def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHCli
             port=depend_on_parameter_values[1],
         )
     elif depend_on_parameter_values[5] == "password":
+        pw = (
+            depend_on_parameter_values[4]
+            if isinstance(depend_on_parameter_values[4], str)
+            else depend_on_parameter_values[4].decrypt()
+        )
         ssh_client.connect(
             hostname=depend_on_parameter_values[0],
             username=depend_on_parameter_values[2],
-            password=depend_on_parameter_values[4],
+            password=pw,
+            port=depend_on_parameter_values[1],
         )
 
 
