@@ -2,7 +2,6 @@
 
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
-from paramiko import SSHException
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
@@ -11,7 +10,7 @@ from tests.conftest import TestingEnvironment
 
 def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect private key"""
-    with pytest.raises(SSHException, match="not a valid RSA private key file"):
+    with pytest.raises(ValueError, match="Unsupported private key format"):
         ListFiles(
             hostname=testing_environment.hostname,
             port=testing_environment.port,

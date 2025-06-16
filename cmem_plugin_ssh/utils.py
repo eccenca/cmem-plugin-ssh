@@ -1,6 +1,7 @@
 """Utils for SSH plugins"""
 
 import io
+import re
 from collections import OrderedDict
 
 import paramiko
@@ -18,10 +19,17 @@ def load_private_key(private_key: str | Password, password: str | Password) -> R
         return None
     pkey = private_key if isinstance(private_key, str) else private_key.decrypt()
     password = password if isinstance(password, str) else password.decrypt()
-    pkey = pkey.replace(
-        "-----BEGIN OPENSSH PRIVATE KEY-----", "-----BEGIN OPENSSH PRIVATE KEY-----\n"
+    match = re.search(
+        r"(-----BEGIN (.+?) PRIVATE KEY-----)(.*?)(-----END (.+?) PRIVATE KEY-----)",
+        pkey,
+        re.DOTALL,
     )
-    pkey = pkey.replace("-----END OPENSSH PRIVATE KEY-----", "\n-----END OPENSSH PRIVATE KEY-----")
+    if not match:
+        raise ValueError("Unsupported private key format")
+
+    begin, body, end = match.group(1), match.group(3).strip(), match.group(4)
+    pkey = f"{begin}\n{body}\n{end}"
+
     key_file = io.StringIO(pkey)
     if not password:
         return paramiko.RSAKey.from_private_key(key_file)
