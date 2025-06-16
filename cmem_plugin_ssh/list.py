@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
-from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter, PluginAction
+from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
@@ -43,7 +43,7 @@ def generate_schema() -> EntitySchema:
         PluginAction(
             name="preview_results",
             label="Preview results (max. 10)",
-            description="Lists 10 files as a preview."
+            description="Lists 10 files as a preview.",
         )
     ],
     parameters=[
@@ -161,15 +161,17 @@ class ListFiles(WorkflowPlugin):
 
     def preview_results(self) -> str:
         """Preview the results of an execution"""
-        preview = []
         retrieval = SSHRetrieval(
             sftp=self.sftp,
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )
-        files = retrieval.list_files_parallel(files=[], context=None, path=self.path, no_of_max_hits=10)
-        preview = [f.filename for f in files]
-        return "\n".join(preview)
+        files = retrieval.list_files_parallel(
+            files=[], context=None, path=self.path, no_of_max_hits=10
+        )
+        output = [f"The Following {len(files)} entities were found:", ""]
+        output.extend(f"- {file.filename}" for file in files)
+        return "\n".join(output)
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
