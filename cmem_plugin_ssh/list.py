@@ -165,7 +165,7 @@ class ListFiles(WorkflowPlugin):
     def preview_results(self) -> str:
         """Preview the results of an execution"""
         retrieval = SSHRetrieval(
-            sftp=self.sftp,
+            ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )
@@ -185,7 +185,7 @@ class ListFiles(WorkflowPlugin):
         entities = []
 
         retrieval = SSHRetrieval(
-            sftp=self.sftp,
+            ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )

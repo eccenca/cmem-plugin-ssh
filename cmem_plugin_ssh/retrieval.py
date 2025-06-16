@@ -3,10 +3,11 @@
 import re
 import stat
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
-from paramiko import SFTPAttributes, SFTPClient
+from paramiko import SFTPAttributes, SSHClient
 
 
 def context_report(context: ExecutionContext, files: list[Any]) -> None:
@@ -24,15 +25,22 @@ class SSHRetrieval:
 
     def __init__(
         self,
-        sftp: SFTPClient,
+        ssh_client: SSHClient,
         no_subfolder: bool,
         regex: str,
     ):
-        self.sftp = sftp
+        self.ssh_client = ssh_client  # Use SSHClient instead of SFTPClient
         self.no_subfolder = no_subfolder
         self.regex = regex
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
+        self.sftp_pool = threading.local()  # Thread-local SFTP client
+
+    def get_sftp(self) -> Any:  # noqa: ANN401
+        """Generate thread-local SFTP-client access"""
+        if not hasattr(self.sftp_pool, "client"):
+            self.sftp_pool.client = self.ssh_client.open_sftp()
+        return self.sftp_pool.client
 
     def list_files_parallel(  # noqa: PLR0913
         self,
@@ -47,6 +55,7 @@ class SSHRetrieval:
         """List all files recursively with concurrency"""
         if curr_depth == 0:
             self.stop_event.clear()
+
         self.cancel_listdir(context)
         if self.stop_event.is_set() or (depth != -1 and curr_depth >= depth):
             return files
@@ -70,10 +79,27 @@ class SSHRetrieval:
                 full_path = f"{path.rstrip('/')}/{item.filename}"
                 subdirectories.append(full_path)
 
-        for sd in subdirectories:
-            self.list_files_parallel(
-                sd, files, None, depth, curr_depth + 1, no_of_max_hits, workers
-            )
+        if subdirectories and not self.stop_event.is_set():
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = [
+                    executor.submit(
+                        self.list_files_parallel,
+                        sd,
+                        files,
+                        None,
+                        depth,
+                        curr_depth + 1,
+                        no_of_max_hits,
+                        workers,
+                    )
+                    for sd in subdirectories
+                ]
+                for fut in as_completed(futures):
+                    self.cancel_listdir(context)
+                    if self.stop_event.is_set():
+                        break
+                    fut.result()
+                    context_report(context, files)
 
         return files
 
@@ -111,5 +137,5 @@ class SSHRetrieval:
 
         return False
 
-    def _get_folder_items(self, path: str) -> list[SFTPAttributes]:
-        return self.sftp.listdir_attr() if not path else self.sftp.listdir_attr(path)
+    def _get_folder_items(self, path: str) -> Any:  # noqa: ANN401
+        return self.get_sftp().listdir_attr(path if path else ".")
