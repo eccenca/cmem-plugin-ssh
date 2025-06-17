@@ -1,14 +1,65 @@
 """Tests for list plugin"""
 
+import os
 import re
 
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
-from paramiko import AuthenticationException
+from paramiko import AuthenticationException, SSHException
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
 from tests.conftest import TestingEnvironment
+
+
+def test_private_key_with_wrong_password(testing_environment: TestingEnvironment) -> None:
+    """Test encrypted private key with wrong password failure"""
+    with pytest.raises(SSHException, match="OpenSSH private key file checkints do not match"):
+        ListFiles(
+            hostname=testing_environment.hostname,
+            port=testing_environment.port,
+            username=testing_environment.username,
+            private_key=testing_environment.private_key_with_password,
+            password="wrong_password",  # noqa: S106
+            authentication_method=testing_environment.authentication_method,
+            path=testing_environment.path,
+            regex=testing_environment.regex,
+            no_subfolder=testing_environment.no_subfolder,
+        )
+
+
+def test_private_key_with_password_execution(testing_environment: TestingEnvironment) -> None:
+    """Test autocompletion and base execution with a password encrypted private key"""
+    plugin = ListFiles(
+        hostname=testing_environment.hostname,
+        port=testing_environment.port,
+        username=testing_environment.username,
+        private_key=os.getenv("SSH_PRIVATE_KEY_WITH_PASSWORD"),
+        password=testing_environment.password,
+        authentication_method=testing_environment.authentication_method,
+        path=testing_environment.path,
+        regex=testing_environment.regex,
+        no_subfolder=testing_environment.no_subfolder,
+    )
+    autocompletion = DirectoryParameterType(url_expand="", display_name="")
+    depends_on = [
+        plugin.hostname,
+        plugin.port,
+        plugin.username,
+        plugin.private_key,
+        plugin.password,
+        plugin.authentication_method,
+        plugin.path,
+    ]
+    autocompletion_result = autocompletion.autocomplete(
+        query_terms=["volume"],
+        depend_on_parameter_values=depends_on,
+        context=TestPluginContext(),
+    )
+    assert len(autocompletion_result) > 0
+
+    execution_result = plugin.execute(context=TestExecutionContext(), inputs=[])
+    assert len(list(execution_result.entities)) == testing_environment.no_of_files
 
 
 def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:

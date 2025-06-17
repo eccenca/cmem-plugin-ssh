@@ -32,6 +32,7 @@ class TestingEnvironment:
     username: str
     authentication_method: str
     private_key: str
+    private_key_with_password: str
     password: str
     path: str
     regex: str
@@ -48,6 +49,7 @@ def testing_environment() -> TestingEnvironment:
     username = get_env_or_skip("SSH_USERNAME")
     authentication_method = "key"
     private_key = get_env_or_skip("SSH_PRIVATE_KEY")
+    private_key_with_password = get_env_or_skip("SSH_PRIVATE_KEY_PASSWORD")
     password = get_env_or_skip("SSH_PASSWORD")
     path = "volume"
     regex = "^.*$"
@@ -69,6 +71,7 @@ def testing_environment() -> TestingEnvironment:
         username=username,
         authentication_method=authentication_method,
         private_key=private_key,
+        private_key_with_password=private_key_with_password,
         password=password,
         path=path,
         no_subfolder=no_subfolder,

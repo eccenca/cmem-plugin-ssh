@@ -39,7 +39,7 @@ def generate_schema() -> EntitySchema:
     documentation="""
 This workflow task generates structured output from a specified SSH instance.
 
-By providing the hostname, username, port and authentication method, you can specify the 
+By providing the hostname, username, port and authentication method, you can specify the
 folder from which the data should be extracted.
 
 You can also define a regular expression to include or exclude specific files.
@@ -167,6 +167,7 @@ class ListFiles(WorkflowPlugin):
                 hostname=self.hostname,
                 username=self.username,
                 pkey=load_private_key(self.private_key, self.password),
+                password=self.password,
                 port=self.port,
                 timeout=20,
             )
