@@ -1,11 +1,10 @@
 """Tests for list plugin"""
 
-import os
 import re
 
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
-from paramiko import AuthenticationException, SSHException
+from paramiko import AuthenticationException
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
@@ -14,7 +13,7 @@ from tests.conftest import TestingEnvironment
 
 def test_private_key_with_wrong_password(testing_environment: TestingEnvironment) -> None:
     """Test encrypted private key with wrong password failure"""
-    with pytest.raises(SSHException, match="OpenSSH private key file checkints do not match"):
+    with pytest.raises(AuthenticationException, match="Authentication failed."):
         ListFiles(
             hostname=testing_environment.hostname,
             port=testing_environment.port,
@@ -34,7 +33,7 @@ def test_private_key_with_password_execution(testing_environment: TestingEnviron
         hostname=testing_environment.hostname,
         port=testing_environment.port,
         username=testing_environment.username,
-        private_key=os.getenv("SSH_PRIVATE_KEY_WITH_PASSWORD"),
+        private_key=testing_environment.private_key_with_password,
         password=testing_environment.password,
         authentication_method=testing_environment.authentication_method,
         path=testing_environment.path,

@@ -4,16 +4,15 @@ import io
 import re
 from collections import OrderedDict
 
-import paramiko
 from cmem_plugin_base.dataintegration.parameter.password import Password
-from paramiko import RSAKey
+from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
 
 PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
 AUTHENTICATION_CHOICES = OrderedDict({PASSWORD: "Password", PRIVATE_KEY: "Key"})
 
 
-def load_private_key(private_key: str | Password, password: str | Password) -> RSAKey | None:
+def load_private_key(private_key: str | Password, password: str | Password) -> PKey | None:
     """Load the private key correctly"""
     if not private_key:
         return None
@@ -31,6 +30,13 @@ def load_private_key(private_key: str | Password, password: str | Password) -> R
     pkey = f"{begin}\n{body}\n{end}"
 
     key_file = io.StringIO(pkey)
-    if not password:
-        return paramiko.RSAKey.from_private_key(key_file)
-    return paramiko.RSAKey.from_private_key(key_file, password)
+    loaders: list[type[PKey]] = [RSAKey, DSSKey, ECDSAKey, Ed25519Key]
+    for loader in loaders:
+        try:
+            if password:
+                return loader.from_private_key(key_file, password=password)
+            return loader.from_private_key(key_file)
+        except SSHException:
+            key_file.seek(0)  # Reset file pointer for next try
+            continue
+    return None
