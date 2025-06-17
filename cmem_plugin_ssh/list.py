@@ -132,8 +132,6 @@ class ListFiles(WorkflowPlugin):
         self.regex = rf"{regex}"
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
-
-        # dont think actually connecting is necessary here
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
@@ -152,6 +150,7 @@ class ListFiles(WorkflowPlugin):
                 username=self.username,
                 pkey=load_private_key(self.private_key, self.password),
                 port=self.port,
+                timeout=20,
             )
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -160,6 +159,7 @@ class ListFiles(WorkflowPlugin):
                 username=self.username,
                 password=self.password,
                 port=self.port,
+                timeout=20,
             )
 
     def preview_results(self) -> str:

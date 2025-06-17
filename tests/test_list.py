@@ -1,11 +1,62 @@
 """Tests for list plugin"""
 
+import re
+
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
+from paramiko import AuthenticationException
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
 from tests.conftest import TestingEnvironment
+
+
+def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
+    """Test plugin execution with an incorrect port"""
+    with pytest.raises(TimeoutError, match="timed out"):
+        ListFiles(
+            hostname="123.45.6.78",
+            port=testing_environment.port,
+            username=testing_environment.username,
+            private_key=testing_environment.private_key,
+            password=testing_environment.password,
+            authentication_method=testing_environment.authentication_method,
+            path=testing_environment.path,
+            regex=testing_environment.regex,
+            no_subfolder=testing_environment.no_subfolder,
+        )
+
+
+def test_plugin_wrong_username(testing_environment: TestingEnvironment) -> None:
+    """Test plugin execution with an incorrect port"""
+    with pytest.raises(AuthenticationException, match="Authentication failed."):
+        ListFiles(
+            hostname=testing_environment.hostname,
+            port=testing_environment.port,
+            username="wrong_username",
+            private_key=testing_environment.private_key,
+            password=testing_environment.password,
+            authentication_method=testing_environment.authentication_method,
+            path=testing_environment.path,
+            regex=testing_environment.regex,
+            no_subfolder=testing_environment.no_subfolder,
+        )
+
+
+def test_plugin_wrong_port(testing_environment: TestingEnvironment) -> None:
+    """Test plugin execution with an incorrect port"""
+    with pytest.raises(OSError, match=re.escape("[Errno 9] Bad file descriptor")):
+        ListFiles(
+            hostname=testing_environment.hostname,
+            port=1234,
+            username=testing_environment.username,
+            private_key=testing_environment.private_key,
+            password=testing_environment.password,
+            authentication_method=testing_environment.authentication_method,
+            path=testing_environment.path,
+            regex=testing_environment.regex,
+            no_subfolder=testing_environment.no_subfolder,
+        )
 
 
 def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> None:
@@ -18,6 +69,22 @@ def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> No
             private_key="invalidkeymaterial",
             password="",
             authentication_method="key",
+            path=testing_environment.path,
+            regex=testing_environment.regex,
+            no_subfolder=testing_environment.no_subfolder,
+        )
+
+
+def test_plugin_wrong_password(testing_environment: TestingEnvironment) -> None:
+    """Test plugin execution with an incorrect private key"""
+    with pytest.raises(AuthenticationException, match="Authentication failed."):
+        ListFiles(
+            hostname=testing_environment.hostname,
+            port=testing_environment.port,
+            username=testing_environment.username,
+            private_key=testing_environment.private_key,
+            password="1234",  # noqa: S106
+            authentication_method="password",
             path=testing_environment.path,
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
@@ -41,7 +108,7 @@ def test_plugin_password_authentication_only(testing_environment: TestingEnviron
     assert len(list(result_execution.entities)) == testing_environment.no_of_files
 
 
-def test_plugin_base_execution(testing_environment: TestingEnvironment) -> None:
+def test_plugin_private_key_base_execution(testing_environment: TestingEnvironment) -> None:
     """Test basic plugin execution"""
     plugin = testing_environment.list_plugin
     result_execution = plugin.execute(inputs=[], context=TestExecutionContext())
