@@ -59,6 +59,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOSTNAME: ${{ secrets.SSH_HOSTNAME }}
+          SSH_PRIVATE_KEY_WITH_PASSWORD: ${{ secrets.SSH_PRIVATE_KEY_WITH_PASSWORD }}
         run: |
           task check:pytest
 

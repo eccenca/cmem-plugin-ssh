@@ -49,7 +49,7 @@ def testing_environment() -> TestingEnvironment:
     username = get_env_or_skip("SSH_USERNAME")
     authentication_method = "key"
     private_key = get_env_or_skip("SSH_PRIVATE_KEY")
-    private_key_with_password = get_env_or_skip("SSH_PRIVATE_KEY_PASSWORD")
+    private_key_with_password = get_env_or_skip("SSH_PRIVATE_KEY_WITH_PASSWORD")
     password = get_env_or_skip("SSH_PASSWORD")
     path = "volume"
     regex = "^.*$"
