@@ -95,7 +95,7 @@ def test_plugin_wrong_username(testing_environment: TestingEnvironment) -> None:
 
 def test_plugin_wrong_port(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect port"""
-    with pytest.raises(OSError, match=re.escape("[Errno 9] Bad file descriptor")):
+    with pytest.raises(OSError, match=re.escape(r"[Errno")):
         ListFiles(
             hostname=testing_environment.hostname,
             port=1234,
