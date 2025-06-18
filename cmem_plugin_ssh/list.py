@@ -13,7 +13,7 @@ from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSch
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
+from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key, setup_max_workers
 
 
 def generate_schema() -> EntitySchema:
@@ -160,7 +160,7 @@ class ListFiles(WorkflowPlugin):
         self.path = path
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
-        self.max_workers = max_workers  # check if value between 1 and 32 STILL TODO
+        self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
         self.ssh_client = paramiko.SSHClient()
