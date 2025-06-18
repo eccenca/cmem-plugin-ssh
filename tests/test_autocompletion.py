@@ -1,4 +1,5 @@
 """Autocompletion test suite"""
+
 import pytest
 from cmem_plugin_base.testing import TestPluginContext
 

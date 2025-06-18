@@ -20,5 +20,9 @@ RUN mkdir /restricted && \
     chmod 700 /restricted && \
     chown root:root /restricted
 
+RUN touch /etc/restricted.txt && \
+    chmod 700 /etc/restricted.txt && \
+    chown root:root /etc/restricted.txt
+
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

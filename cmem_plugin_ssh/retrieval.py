@@ -43,7 +43,7 @@ class SSHRetrieval:
             self.sftp_pool.client = self.ssh_client.open_sftp()
         return self.sftp_pool.client
 
-    def list_files_parallel(  # noqa: PLR0913
+    def list_files_parallel(  # noqa: PLR0913, C901
         self,
         path: str,
         files: list[SFTPAttributes],
@@ -65,6 +65,15 @@ class SSHRetrieval:
         items = self._get_folder_items(path)
 
         for item in items:
+            full_path = f"{path.rstrip('/')}/{item.filename}"
+            item_mode = item.st_mode
+
+            if not stat.S_ISDIR(item_mode):
+                try:
+                    with self.get_sftp().open(full_path, "r") as f:
+                        f.read(1)
+                except PermissionError as e:
+                    raise PermissionError(f"No access to '{item.filename}': {e}") from e
             self.cancel_listdir(context)
             if self.stop_event.is_set():
                 return files
@@ -75,9 +84,7 @@ class SSHRetrieval:
             if added and self.check_stop(files, no_of_max_hits):
                 return files
 
-            item_mode = item.st_mode
             if item_mode and stat.S_ISDIR(item_mode) and not self.no_subfolder:
-                full_path = f"{path.rstrip('/')}/{item.filename}"
                 subdirectories.append(full_path)
 
         if subdirectories and not self.stop_event.is_set():
@@ -130,7 +137,6 @@ class SSHRetrieval:
                 return False
 
             mode = item.st_mode
-            # ADD HERE THAT IF NO FILE ACCESS, GIVE ERROR
             if mode and re.fullmatch(self.regex, item.filename) and not stat.S_ISDIR(mode):
                 files.append(item)
                 if no_of_max_hits != -1 and len(files) >= no_of_max_hits:

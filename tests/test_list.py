@@ -194,3 +194,12 @@ def test_preview_action(testing_environment: TestingEnvironment) -> None:
     plugin = testing_environment.list_plugin
     preview = plugin.preview_results()
     assert "RootFile.txt" in preview
+
+
+def test_execution_denied_permission(testing_environment: TestingEnvironment) -> None:
+    """Test execution with a not permitted file"""
+    plugin = testing_environment.list_plugin
+    plugin.path = "/etc"
+    plugin.no_subfolder = True
+    with pytest.raises(PermissionError, match=r"No access to '"):
+        plugin.execute(inputs=[], context=TestExecutionContext())
