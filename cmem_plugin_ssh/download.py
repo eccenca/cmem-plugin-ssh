@@ -1,6 +1,7 @@
 """SSH download files task plugin"""
 
 from collections.abc import Sequence
+from pathlib import Path
 
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext
@@ -10,7 +11,7 @@ from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterTyp
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
-from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema
+from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema, LocalFile
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import generate_schema
@@ -118,6 +119,7 @@ class DownloadFiles(WorkflowPlugin):
         self.regex = rf"{regex}"
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_schema())])
         self.output_port = FixedSchemaPort(schema=generate_schema())
+        self.download_dir = Path()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
@@ -167,4 +169,27 @@ class DownloadFiles(WorkflowPlugin):
         """Execute the workflow task"""
         _ = inputs
         _ = context
-        return Entities(entities=iter([]), schema=FileEntitySchema())
+        schema = FileEntitySchema()
+        files = self.download_no_input()
+        entities = [schema.to_entity(file) for file in files]
+        return Entities(entities=iter(entities), schema=schema)
+
+    def download_no_input(self) -> list:
+        """Download files with no given input"""
+        entities = []
+        retrieval = SSHRetrieval(
+            ssh_client=self.ssh_client,
+            no_subfolder=self.no_subfolder,
+            regex=self.regex,
+        )
+        files = retrieval.list_files_parallel(
+            files=[],
+            context=None,
+            path=self.path,
+            download_files=True,
+            download_path=self.download_dir,
+        )
+
+        for file in files:
+            entities.append(LocalFile(file.filename))  # noqa: PERF401
+        return entities

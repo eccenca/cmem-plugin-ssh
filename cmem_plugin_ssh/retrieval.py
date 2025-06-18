@@ -4,6 +4,7 @@ import re
 import stat
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import Any
 
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
@@ -42,7 +43,8 @@ class SSHRetrieval:
             self.sftp_pool.client = self.ssh_client.open_sftp()
         return self.sftp_pool.client
 
-    def list_files_parallel(  # noqa: PLR0913
+    # for now, ignore that it is too complex, need to change after finalizing download
+    def list_files_parallel(  # noqa: PLR0913, C901
         self,
         path: str,
         files: list[SFTPAttributes],
@@ -51,8 +53,10 @@ class SSHRetrieval:
         curr_depth: int = 0,
         no_of_max_hits: int = -1,
         workers: int = 32,
+        download_files: bool = False,
+        download_path: Path = Path(),
     ) -> list[SFTPAttributes]:
-        """List all files recursively with concurrency"""
+        """List all files recursively with concurrency. Can also download when the flag is set."""
         if curr_depth == 0:
             self.stop_event.clear()
 
@@ -69,6 +73,11 @@ class SSHRetrieval:
                 return files
 
             added = self.add_node(files, item, no_of_max_hits)
+
+            if added and download_files:
+                full_path = f"{path.rstrip('/')}/{item.filename}"
+                self.get_sftp().get(remotepath=full_path, localpath=download_path / item.filename)
+
             context_report(context, files)
 
             if added and self.check_stop(files, no_of_max_hits):
