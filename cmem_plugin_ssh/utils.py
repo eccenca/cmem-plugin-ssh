@@ -11,6 +11,11 @@ PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
 AUTHENTICATION_CHOICES = OrderedDict({PASSWORD: "Password", PRIVATE_KEY: "Key"})
 
+IGNORE = "ignore"
+WARNING = "warning"
+ERROR = "error"
+ERROR_HANDLING_CHOICES = OrderedDict({IGNORE: "Ignore", WARNING: "Warning", ERROR: "Error"})
+
 MAX_WORKERS = 32
 
 

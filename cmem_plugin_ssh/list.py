@@ -13,7 +13,12 @@ from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSch
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key, setup_max_workers
+from cmem_plugin_ssh.utils import (
+    AUTHENTICATION_CHOICES,
+    ERROR_HANDLING_CHOICES,
+    load_private_key,
+    setup_max_workers,
+)
 
 
 def generate_schema() -> EntitySchema:
@@ -118,6 +123,12 @@ the amount of files is too large
             default_value="^.*$",
         ),
         PluginParameter(
+            name="error_handling",
+            label="Error handling for missing permissions.",
+            description="A choice on how to handle errors concerning the permissions rights.",
+            param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+        ),
+        PluginParameter(
             name="no_subfolder",
             label="No subfolder",
             description="When this flag is set, only files from the current directory "
@@ -147,6 +158,7 @@ class ListFiles(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
+        error_handling: str,
         no_subfolder: bool,
         regex: str = "",
         max_workers: int = 1,
@@ -157,6 +169,7 @@ class ListFiles(WorkflowPlugin):
         self.authentication_method = authentication_method
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
+        self.error_handling = error_handling
         self.path = path
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
@@ -202,10 +215,31 @@ class ListFiles(WorkflowPlugin):
             regex=self.regex,
         )
         files = retrieval.list_files_parallel(
-            files=[], context=None, path=self.path, no_of_max_hits=10
-        )
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
+        )[0]
+        no_access_files = retrieval.list_files_parallel(
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
+        )[1]
         output = [f"The Following {len(files)} entities were found:", ""]
         output.extend(f"- {file.filename}" for file in files)
+        if len(no_access_files) > 0:
+            output.append(
+                f"\nThe following {len(no_access_files)} entities were found that the current user "
+                f"has no access to:"
+            )
+            output.extend(f"- {no_access_file.filename}" for no_access_file in no_access_files)
         return "\n".join(output)
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
@@ -222,8 +256,13 @@ class ListFiles(WorkflowPlugin):
             regex=self.regex,
         )
         files = retrieval.list_files_parallel(
-            files=[], context=context, path=self.path, workers=self.max_workers
-        )
+            files=[],
+            context=context,
+            path=self.path,
+            workers=self.max_workers,
+            error_handling=self.error_handling,
+            no_access_files=[],
+        )[0]
         context.report.update(
             ExecutionReport(
                 entity_count=len(files), operation="wait", operation_desc="files listed."

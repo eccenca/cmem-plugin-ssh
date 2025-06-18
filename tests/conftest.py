@@ -31,6 +31,7 @@ class TestingEnvironment:
     private_key: str
     private_key_with_password: str
     password: str
+    error_handling: str
     path: str
     regex: str
     no_subfolder: bool
@@ -48,6 +49,7 @@ def testing_environment() -> TestingEnvironment:
     private_key = SSH_PRIVATE_KEY
     private_key_with_password = SSH_PRIVATE_KEY_WITH_PASSWORD
     password = SSH_PASSWORD
+    error_handling = "error"
     path = "volume"
     regex = "^.*$"
     no_subfolder = False
@@ -61,6 +63,7 @@ def testing_environment() -> TestingEnvironment:
         password=password,
         authentication_method=authentication_method,
         no_subfolder=no_subfolder,
+        error_handling=error_handling,
     )
     return TestingEnvironment(
         hostname=hostname,
@@ -73,6 +76,7 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         no_subfolder=no_subfolder,
         regex=regex,
+        error_handling=error_handling,
         list_plugin=list_plugin,
     )
 
