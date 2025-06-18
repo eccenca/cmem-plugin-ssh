@@ -6,6 +6,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
+import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from paramiko import SFTPAttributes, SSHClient
 
@@ -50,7 +51,7 @@ class SSHRetrieval:
         depth: int = -1,
         curr_depth: int = 0,
         no_of_max_hits: int = -1,
-        workers: int = 32,
+        workers: int = 1,
     ) -> list[SFTPAttributes]:
         """List all files recursively with concurrency"""
         if curr_depth == 0:
@@ -129,6 +130,7 @@ class SSHRetrieval:
                 return False
 
             mode = item.st_mode
+            # ADD HERE THAT IF NO FILE ACCESS, GIVE ERROR
             if mode and re.fullmatch(self.regex, item.filename) and not stat.S_ISDIR(mode):
                 files.append(item)
                 if no_of_max_hits != -1 and len(files) >= no_of_max_hits:
@@ -138,4 +140,7 @@ class SSHRetrieval:
         return False
 
     def _get_folder_items(self, path: str) -> Any:  # noqa: ANN401
-        return self.get_sftp().listdir_attr(path if path else ".")
+        try:
+            return self.get_sftp().listdir_attr(path or ".")
+        except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
+            raise ValueError(f"Unable to list folder items at '{path or '.'}': {e}") from e

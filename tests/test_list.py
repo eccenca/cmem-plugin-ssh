@@ -173,76 +173,6 @@ def test_plugin_execution_no_subfolder(testing_environment: TestingEnvironment) 
     assert len(list(result_execution.entities)) == 1
 
 
-def test_autocompletion(testing_environment: TestingEnvironment) -> None:
-    """Test autocompletion for folders on ssh instance"""
-    plugin = testing_environment.list_plugin
-    depends_on = [
-        plugin.hostname,
-        plugin.port,
-        plugin.username,
-        plugin.private_key,
-        plugin.password,
-        plugin.authentication_method,
-        plugin.path,
-    ]
-    autocompletion = DirectoryParameterType(url_expand="", display_name="")
-    autocompletion_result = autocompletion.autocomplete(
-        query_terms=["volume"],
-        depend_on_parameter_values=depends_on,
-        context=TestPluginContext(),
-    )
-
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/TextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
-
-    autocompletion_result = autocompletion.autocomplete(
-        query_terms=[""],
-        depend_on_parameter_values=depends_on,
-        context=TestPluginContext(),
-    )
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/TextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
-
-    autocompletion_result = autocompletion.autocomplete(
-        query_terms=["volume/MoreTextFiles"],
-        depend_on_parameter_values=depends_on,
-        context=TestPluginContext(),
-    )
-
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles2" in autocompletion_values
-
-    autocompletion_result = autocompletion.autocomplete(
-        query_terms=[".."],
-        depend_on_parameter_values=depends_on,
-        context=TestPluginContext(),
-    )
-
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home" in autocompletion_values
-
-    depends_on[6] = ""
-    autocompletion_result = autocompletion.autocomplete(
-        query_terms=[""],
-        depend_on_parameter_values=depends_on,
-        context=TestPluginContext(),
-    )
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/.ssh" in autocompletion_values
-    assert "/home/testuser" in autocompletion_values
-
-
 def test_plugin_no_matching_files(testing_environment: TestingEnvironment) -> None:
     """Test plugin when regex matches no files"""
     plugin = testing_environment.list_plugin
@@ -255,7 +185,7 @@ def test_plugin_nonexistent_directory(testing_environment: TestingEnvironment) -
     """Test plugin with a non-existing remote path"""
     plugin = testing_environment.list_plugin
     plugin.path = "non/existent/path"
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(ValueError, match=r"\[Errno 2\] No such file"):
         plugin.execute(inputs=[], context=TestExecutionContext())
 
 

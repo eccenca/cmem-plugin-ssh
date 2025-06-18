@@ -53,9 +53,10 @@ ignored, even if filled.
 will be used to decrypt it.
 
 #### Note:
-If a connection cannot be established within 20 seconds, a timeout occurs.
-Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
-
+* If a connection cannot be established within 20 seconds, a timeout occurs.
+* Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
+* Setting the maximum amount of workers to more than 1 may cause a Channel Exception when
+the amount of files is too large
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     actions=[
@@ -123,6 +124,15 @@ Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
             "will be listed.",
             default_value=False,
         ),
+        PluginParameter(
+            name="max_workers",
+            label="Maximum amount of workers.",
+            description="Determines the amount of workers used for concurrent thread execution "
+            "of the task. Default is 1. Note that too many workers can cause a "
+            "ChannelException.",
+            default_value=1,
+            advanced=True,
+        ),
     ],
 )
 class ListFiles(WorkflowPlugin):
@@ -139,6 +149,7 @@ class ListFiles(WorkflowPlugin):
         path: str,
         no_subfolder: bool,
         regex: str = "",
+        max_workers: int = 1,
     ):
         self.hostname = hostname
         self.port = port
@@ -149,6 +160,7 @@ class ListFiles(WorkflowPlugin):
         self.path = path
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
+        self.max_workers = max_workers  # check if value between 1 and 32 STILL TODO
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_schema())
         self.ssh_client = paramiko.SSHClient()
@@ -209,7 +221,9 @@ class ListFiles(WorkflowPlugin):
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )
-        files = retrieval.list_files_parallel(files=[], context=context, path=self.path)
+        files = retrieval.list_files_parallel(
+            files=[], context=context, path=self.path, workers=self.max_workers
+        )
         context.report.update(
             ExecutionReport(
                 entity_count=len(files), operation="wait", operation_desc="files listed."
