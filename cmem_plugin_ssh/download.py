@@ -1,45 +1,28 @@
-"""SSH List files task plugin"""
+"""SSH download files task plugin"""
 
 from collections.abc import Sequence
 
 import paramiko
-from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
+from cmem_plugin_base.dataintegration.context import ExecutionContext
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
-from cmem_plugin_base.dataintegration.entity import Entities, Entity
+from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
+from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
+from cmem_plugin_ssh.list import generate_schema
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, generate_schema, load_private_key
+from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
 
 
 @Plugin(
-    label="List SSH files",
-    plugin_id="cmem_plugin_ssh-List",
-    description="List files from a given SSH instance.",
+    label="Download SSH files",
+    plugin_id="cmem_plugin_ssh-Download",
+    description="Download files from a given SSH instance",
     documentation="""
-This workflow task generates structured output from a specified SSH instance.
-
-By providing the hostname, username, port and authentication method, you can specify the
-folder from which the data should be extracted.
-
-You can also define a regular expression to include or exclude specific files.
-
-There is also an option to prevent files in subfolders from being included.
-
-#### Authentication Methods:
-* **Password:** Only the password will be used for authentication. The private key field is
-ignored, even if filled.
-* **Key:** The private key will be used for authentication. If the key is encrypted, the password
-will be used to decrypt it.
-
-#### Note:
-If a connection cannot be established within 20 seconds, a timeout occurs.
-Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
-
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     actions=[
@@ -47,7 +30,7 @@ Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
             name="preview_results",
             label="Preview results (max. 10)",
             description="Lists 10 files as a preview.",
-        )
+        ),
     ],
     parameters=[
         PluginParameter(
@@ -109,8 +92,8 @@ Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
         ),
     ],
 )
-class ListFiles(WorkflowPlugin):
-    """List Plugin SSH"""
+class DownloadFiles(WorkflowPlugin):
+    """SSH Workflow Plugin: File download"""
 
     def __init__(  # noqa: PLR0913
         self,
@@ -133,16 +116,11 @@ class ListFiles(WorkflowPlugin):
         self.path = path
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
-        self.input_ports = FixedNumberOfInputs([])
+        self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_schema())])
         self.output_port = FixedSchemaPort(schema=generate_schema())
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
-
-    def close_connections(self) -> None:
-        """Close connection from sftp and ssh"""
-        self.sftp.close()
-        self.ssh_client.close()
 
     def connect_ssh_client(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
@@ -166,6 +144,11 @@ class ListFiles(WorkflowPlugin):
                 timeout=20,
             )
 
+    def close_connections(self) -> None:
+        """Close connection from sftp and ssh"""
+        self.sftp.close()
+        self.ssh_client.close()
+
     def preview_results(self) -> str:
         """Preview the results of an execution"""
         retrieval = SSHRetrieval(
@@ -183,58 +166,5 @@ class ListFiles(WorkflowPlugin):
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
-        context.report.update(
-            ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
-        )
-        entities = []
-
-        retrieval = SSHRetrieval(
-            ssh_client=self.ssh_client,
-            no_subfolder=self.no_subfolder,
-            regex=self.regex,
-        )
-        files = retrieval.list_files_parallel(files=[], context=context, path=self.path)
-        context.report.update(
-            ExecutionReport(
-                entity_count=len(files), operation="wait", operation_desc="files listed."
-            )
-        )
-
-        for file in files:
-            entities.append(
-                Entity(
-                    uri=file.filename,
-                    values=[
-                        [file.filename],
-                        [str(file.st_size)],
-                        [str(file.st_uid)],
-                        [str(file.st_gid)],
-                        [str(file.st_mode)],
-                        [str(file.st_atime)],
-                        [str(file.st_mtime)],
-                    ],
-                )
-            )
-            context.report.update(
-                ExecutionReport(
-                    entity_count=len(entities),
-                    operation="write",
-                    operation_desc="entities generated",
-                )
-            )
-
-        context.report.update(
-            ExecutionReport(
-                entity_count=len(entities),
-                operation="done",
-                operation_desc="entities generated",
-                sample_entities=Entities(entities=iter(entities[:10]), schema=generate_schema()),
-            )
-        )
-
-        self.close_connections()
-
-        return Entities(
-            entities=iter(entities),
-            schema=generate_schema(),
-        )
+        _ = context
+        return Entities(entities=iter([]), schema=FileEntitySchema())

@@ -4,6 +4,7 @@ import io
 import re
 from collections import OrderedDict
 
+from cmem_plugin_base.dataintegration.entity import EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.password import Password
 from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
 
@@ -40,3 +41,19 @@ def load_private_key(private_key: str | Password, password: str | Password) -> P
             key_file.seek(0)  # Reset file pointer for next try
             continue
     return None
+
+
+def generate_schema() -> EntitySchema:
+    """Provide the schema for files"""
+    return EntitySchema(
+        type_uri="",
+        paths=[
+            EntityPath(path="file_name"),
+            EntityPath(path="size"),
+            EntityPath(path="uid"),
+            EntityPath(path="gid"),
+            EntityPath(path="mode"),
+            EntityPath(path="atime"),
+            EntityPath(path="mtime"),
+        ],
+    )
