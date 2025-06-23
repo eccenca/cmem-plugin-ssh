@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 import paramiko
 from cmem_plugin_base.dataintegration.context import PluginContext
 from cmem_plugin_base.dataintegration.types import Autocompletion, StringParameterType
-from paramiko import SSHClient
+from paramiko import SFTPAttributes, SFTPClient, SSHClient
 
 from cmem_plugin_ssh.utils import load_private_key
 
@@ -19,6 +19,7 @@ def sort_suggestions(suggestions: list[Autocompletion], query_terms: list[str]) 
             x.label.lower(),
         )
     )
+
 
 def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHClient) -> None:
     """Connect to the ssh client with the selected authentication method"""
@@ -49,6 +50,12 @@ def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHCli
             port=depend_on_parameter_values[1],
             timeout=20,
         )
+
+
+def close_connection(sftp: SFTPClient, ssh_client: SSHClient) -> None:
+    """Close SFTP and SSH session connection"""
+    sftp.close()
+    ssh_client.close()
 
 
 class DirectoryParameterType(StringParameterType):
@@ -93,17 +100,7 @@ class DirectoryParameterType(StringParameterType):
 
         if selected_path == "":
             sftp.chdir(None)
-            try:
-                files_and_folders = sftp.listdir_attr()
-            except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
-                current_dir = sftp.normalize(".")
-                parent_dir = (
-                    current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
-                )
-                self.suggestions = [Autocompletion(value=parent_dir, label=parent_dir)]
-                raise ValueError(
-                    f"Unable to list folder items at '{current_dir or '.'}': {e}"
-                ) from e
+            files_and_folders = self.list_folders(sftp)
             folders = [
                 f.filename
                 for f in files_and_folders
@@ -124,28 +121,16 @@ class DirectoryParameterType(StringParameterType):
             )
             result.append(Autocompletion(value=parent_dir, label=parent_dir))
             self.suggestions = result
-            sftp.close()
-            ssh_client.close()
+            close_connection(sftp, ssh_client)
             return self.suggestions
 
         if selected_path != "" and entered_directory == "":
-            sftp.close()
-            ssh_client.close()
+            close_connection(sftp, ssh_client)
             return self.suggestions
 
         if entered_directory:
             sftp.chdir(entered_directory)
-            try:
-                files_and_folders = sftp.listdir_attr()
-            except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
-                current_dir = sftp.normalize(".")
-                parent_dir = (
-                    current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
-                )
-                self.suggestions = [Autocompletion(value=parent_dir, label=parent_dir)]
-                raise ValueError(
-                    f"Unable to list folder items at '{current_dir or '.'}': {e}"
-                ) from e
+            files_and_folders = self.list_folders(sftp)
             folders = [
                 f.filename
                 for f in files_and_folders
@@ -167,8 +152,20 @@ class DirectoryParameterType(StringParameterType):
             if sftp.getcwd() != "/":
                 result.append(Autocompletion(value=parent_dir, label=parent_dir))
             self.suggestions = result
-            sftp.close()
-            ssh_client.close()
+            close_connection(sftp, ssh_client)
             return self.suggestions
 
         return self.suggestions
+
+    def list_folders(self, sftp: SFTPClient) -> list[SFTPAttributes]:
+        """List folders from given SFTP client"""
+        try:
+            files_and_folders = sftp.listdir_attr()
+        except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
+            current_dir = sftp.normalize(".")
+            parent_dir = (
+                current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
+            )
+            self.suggestions = [Autocompletion(value=parent_dir, label=parent_dir)]
+            raise ValueError(f"Unable to list folder items at '{current_dir or '.'}': {e}") from e
+        return files_and_folders
