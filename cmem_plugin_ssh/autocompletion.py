@@ -11,6 +11,15 @@ from paramiko import SSHClient
 from cmem_plugin_ssh.utils import load_private_key
 
 
+def sort_suggestions(suggestions: list[Autocompletion], query_terms: list[str]) -> None:
+    """Sort autocompleted suggestions"""
+    suggestions.sort(
+        key=lambda x: (
+            not all(term.lower() in x.label.lower() for term in query_terms),
+            x.label.lower(),
+        )
+    )
+
 def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHClient) -> None:
     """Connect to the ssh client with the selected authentication method"""
     if depend_on_parameter_values[5] == "key":
@@ -108,6 +117,7 @@ class DirectoryParameterType(StringParameterType):
                 )
                 for f in folders
             ]
+            sort_suggestions(result, query_terms)
             result.append(Autocompletion(value=current_dir, label=current_dir))
             parent_dir = (
                 current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
@@ -149,6 +159,7 @@ class DirectoryParameterType(StringParameterType):
                 )
                 for f in folders
             ]
+            sort_suggestions(result, query_terms)
             result.append(Autocompletion(value=current_dir, label=current_dir))
             parent_dir = (
                 current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
