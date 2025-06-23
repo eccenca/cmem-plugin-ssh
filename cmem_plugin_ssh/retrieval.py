@@ -159,7 +159,6 @@ class SSHRetrieval:
         try:
             return self.get_sftp().listdir_attr(path or ".")
         except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
-            # this is probably not correct for warning option
             if error_handling in {"warning", "ignore"}:
                 return []
             if error_handling == "error":

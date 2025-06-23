@@ -57,6 +57,13 @@ ignored, even if filled.
 * **Key:** The private key will be used for authentication. If the key is encrypted, the password
 will be used to decrypt it.
 
+#### Error handling modes:
+* **Ignore:** Ignores the permission rights of files and lists them all. Skips folders when there
+is no correct permission.
+* **Warning:** Warns the user about files that the user has no permission rights to. Lists all files
+and skips folder when there is no correct permission.
+* **Error:** Throws an error when there is a single file or folder with incorrect permission rights.
+
 #### Note:
 * If a connection cannot be established within 20 seconds, a timeout occurs.
 * Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
@@ -125,7 +132,14 @@ the amount of files is too large
         PluginParameter(
             name="error_handling",
             label="Error handling for missing permissions.",
-            description="A choice on how to handle errors concerning the permissions rights.",
+            description="A choice on how to handle errors concerning the permissions rights."
+            "When choosing 'ignore' all files get listed regardless if the current "
+            "user has correct permission rights"
+            "When choosing 'warning' all files get listed however there will be "
+            "a mention that some of the files are not under the users permissions"
+            "if there are any"
+            "When choosing 'error' the files will not get listed if there"
+            "there are files the user has no access to.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
         ),
         PluginParameter(
@@ -240,6 +254,10 @@ class ListFiles(WorkflowPlugin):
                 f"has no access to:"
             )
             output.extend(f"- {no_access_file.filename}" for no_access_file in no_access_files)
+        output.append(
+            "\n ## Note: \nSince not all files are included in this preview, "
+            "the selected error handling method might not always yield accurate results"
+        )
         return "\n".join(output)
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
@@ -255,14 +273,15 @@ class ListFiles(WorkflowPlugin):
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )
-        files = retrieval.list_files_parallel(
+        all_files = retrieval.list_files_parallel(
             files=[],
             context=context,
             path=self.path,
             workers=self.max_workers,
             error_handling=self.error_handling,
             no_access_files=[],
-        )[0]
+        )
+        files = all_files[0]
         context.report.update(
             ExecutionReport(
                 entity_count=len(files), operation="wait", operation_desc="files listed."
@@ -292,14 +311,32 @@ class ListFiles(WorkflowPlugin):
                 )
             )
 
-        context.report.update(
-            ExecutionReport(
-                entity_count=len(entities),
-                operation="done",
-                operation_desc="entities generated",
-                sample_entities=Entities(entities=iter(entities[:10]), schema=generate_schema()),
+        if self.error_handling == "warning" and len(all_files[1]) > 0:
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(entities[:10]), schema=generate_schema()
+                    ),
+                    warnings=[
+                        "Some files have been listed that the current user does not have access to"
+                    ],
+                )
             )
-        )
+
+        else:
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(entities[:10]), schema=generate_schema()
+                    ),
+                )
+            )
 
         self.close_connections()
 
