@@ -155,7 +155,7 @@ the amount of files is too large
             name="max_workers",
             label="Maximum amount of workers.",
             description="Determines the amount of workers used for concurrent thread execution "
-            "of the task. Default is 1. Note that too many workers can cause a "
+            "of the task. Default is 1, maximum is 32. Note that too many workers can cause a "
             "ChannelException.",
             default_value=1,
             advanced=True,

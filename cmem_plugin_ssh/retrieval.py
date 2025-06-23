@@ -75,13 +75,13 @@ class SSHRetrieval:
                 try:
                     with self.get_sftp().open(full_path, "r") as f:
                         f.read(1)
-                except PermissionError as e:
+                except (PermissionError, OSError) as e:
                     if error_handling == "ignore":
                         pass
                     elif error_handling == "warning":
                         no_access_files.append(item)
                     else:
-                        raise PermissionError(f"No access to '{item.filename}': {e}") from e
+                        raise ValueError(f"No access to '{item.filename}': {e}") from e
             self.cancel_listdir(context)
             if self.stop_event.is_set():
                 return files, no_access_files
