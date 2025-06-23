@@ -4,7 +4,9 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import paramiko
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.context import (
+    ExecutionContext,
+)
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
@@ -16,7 +18,12 @@ from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchem
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import generate_schema
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key, ERROR_HANDLING_CHOICES, setup_max_workers
+from cmem_plugin_ssh.utils import (
+    AUTHENTICATION_CHOICES,
+    ERROR_HANDLING_CHOICES,
+    load_private_key,
+    setup_max_workers,
+)
 
 
 @Plugin(
@@ -185,10 +192,35 @@ class DownloadFiles(WorkflowPlugin):
             regex=self.regex,
         )
         files = retrieval.list_files_parallel(
-            files=[], context=None, path=self.path, no_of_max_hits=10, no_access_files=[], error_handling=self.error_handling
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
         )[0]
+        no_access_files = retrieval.list_files_parallel(
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
+        )[1]
         output = [f"The Following {len(files)} entities were found:", ""]
         output.extend(f"- {file.filename}" for file in files)
+        if len(no_access_files) > 0:
+            output.append(
+                f"\nThe following {len(no_access_files)} entities were found that the current user "
+                f"has no access to:"
+            )
+            output.extend(f"- {no_access_file.filename}" for no_access_file in no_access_files)
+        output.append(
+            "\n ## Note: \nSince not all files are included in this preview, "
+            "the selected error handling method might not always yield accurate results"
+        )
         return "\n".join(output)
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
