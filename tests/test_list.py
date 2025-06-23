@@ -209,5 +209,5 @@ def test_execution_denied_permission(testing_environment: TestingEnvironment) ->
     plugin = testing_environment.list_plugin
     plugin.path = "/etc"
     plugin.no_subfolder = True
-    with pytest.raises(PermissionError, match=r"No access to '"):
+    with pytest.raises(ValueError, match=r"No access to '"):
         plugin.execute(inputs=[], context=TestExecutionContext())
