@@ -85,6 +85,7 @@ the amount of files is too large
             label="Authentication method",
             description="The method that is used to connect to the SSH server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
+            default_value=AUTHENTICATION_CHOICES["password"],
         ),
         PluginParameter(
             name="private_key",
@@ -126,6 +127,7 @@ the amount of files is too large
             "When choosing 'error' the files will not get listed if there"
             "there are files the user has no access to.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+            default_value=ERROR_HANDLING_CHOICES["error"],
         ),
         PluginParameter(
             name="no_subfolder",
@@ -138,7 +140,7 @@ the amount of files is too large
             name="max_workers",
             label="Maximum amount of workers.",
             description="Determines the amount of workers used for concurrent thread execution "
-            "of the task. Default is 1. Note that too many workers can cause a "
+            "of the task. Default is 1, maximum is 32. Note that too many workers can cause a "
             "ChannelException.",
             default_value=1,
             advanced=True,
@@ -297,13 +299,30 @@ class ListFiles(WorkflowPlugin):
             )
 
         if self.error_handling == "warning" and len(all_files[1]) > 0:
+            faulty_files = all_files[1]
+            faulty_entities = []
+            for file in faulty_files:
+                faulty_entities.append(  # noqa: PERF401
+                    Entity(
+                        uri=file.filename,
+                        values=[
+                            [file.filename],
+                            [str(file.st_size)],
+                            [str(file.st_uid)],
+                            [str(file.st_gid)],
+                            [str(file.st_mode)],
+                            [str(file.st_atime)],
+                            [str(file.st_mtime)],
+                        ],
+                    )
+                )
             context.report.update(
                 ExecutionReport(
                     entity_count=len(entities),
                     operation="done",
                     operation_desc="entities generated",
                     sample_entities=Entities(
-                        entities=iter(entities[:10]), schema=generate_schema()
+                        entities=iter(faulty_entities), schema=generate_schema()
                     ),
                     warnings=[
                         "Some files have been listed that the current user does not have access to"
