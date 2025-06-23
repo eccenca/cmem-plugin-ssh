@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
-from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
+from cmem_plugin_base.dataintegration.entity import Entities, Entity
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
@@ -13,7 +13,13 @@ from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSch
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, generate_schema, load_private_key
+from cmem_plugin_ssh.utils import (
+    AUTHENTICATION_CHOICES,
+    ERROR_HANDLING_CHOICES,
+    generate_schema,
+    load_private_key,
+    setup_max_workers,
+)
 
 
 @Plugin(

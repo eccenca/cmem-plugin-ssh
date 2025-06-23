@@ -16,7 +16,7 @@ from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchem
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import generate_schema
 from cmem_plugin_ssh.retrieval import SSHRetrieval
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
+from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key, ERROR_HANDLING_CHOICES, setup_max_workers
 
 
 @Plugin(
@@ -85,11 +85,33 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
             default_value="^.*$",
         ),
         PluginParameter(
+            name="error_handling",
+            label="Error handling for missing permissions.",
+            description="A choice on how to handle errors concerning the permissions rights."
+                        "When choosing 'ignore' all files get listed regardless if the current "
+                        "user has correct permission rights"
+                        "When choosing 'warning' all files get listed however there will be "
+                        "a mention that some of the files are not under the users permissions"
+                        "if there are any"
+                        "When choosing 'error' the files will not get listed if there"
+                        "there are files the user has no access to.",
+            param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+        ),
+        PluginParameter(
             name="no_subfolder",
             label="No subfolder",
             description="When this flag is set, only files from the current directory "
             "will be listed.",
             default_value=False,
+        ),
+        PluginParameter(
+            name="max_workers",
+            label="Maximum amount of workers.",
+            description="Determines the amount of workers used for concurrent thread execution "
+                        "of the task. Default is 1. Note that too many workers can cause a "
+                        "ChannelException.",
+            default_value=1,
+            advanced=True,
         ),
     ],
 )
@@ -105,8 +127,10 @@ class DownloadFiles(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
+        error_handling: str,
         no_subfolder: bool,
         regex: str = "",
+        max_workers: int = 1,
     ):
         self.hostname = hostname
         self.port = port
@@ -114,9 +138,11 @@ class DownloadFiles(WorkflowPlugin):
         self.authentication_method = authentication_method
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
+        self.error_handling = error_handling
         self.path = path
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
+        self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_schema())])
         self.output_port = FixedSchemaPort(schema=generate_schema())
         self.download_dir = Path()
@@ -159,8 +185,8 @@ class DownloadFiles(WorkflowPlugin):
             regex=self.regex,
         )
         files = retrieval.list_files_parallel(
-            files=[], context=None, path=self.path, no_of_max_hits=10
-        )
+            files=[], context=None, path=self.path, no_of_max_hits=10, no_access_files=[], error_handling=self.error_handling
+        )[0]
         output = [f"The Following {len(files)} entities were found:", ""]
         output.extend(f"- {file.filename}" for file in files)
         return "\n".join(output)
@@ -186,9 +212,11 @@ class DownloadFiles(WorkflowPlugin):
             files=[],
             context=None,
             path=self.path,
+            error_handling=self.error_handling,
             download_files=True,
             download_path=self.download_dir,
-        )
+            no_access_files=[]
+        )[0]
 
         for file in files:
             entities.append(LocalFile(file.filename))  # noqa: PERF401

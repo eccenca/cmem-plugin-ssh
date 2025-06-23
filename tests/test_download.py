@@ -21,6 +21,7 @@ def test_base_execution(testing_environment: TestingEnvironment) -> None:
         path=testing_environment.path,
         regex=testing_environment.regex,
         no_subfolder=testing_environment.no_subfolder,
+        error_handling=testing_environment.error_handling
     )
     with tempfile.TemporaryDirectory() as tmpdir:
         plugin.download_dir = Path(tmpdir)
