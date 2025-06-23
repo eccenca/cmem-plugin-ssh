@@ -3,22 +3,19 @@
 import shutil
 import subprocess
 from dataclasses import dataclass
-from os import environ
 from pathlib import Path
 
 import pytest
 
 from cmem_plugin_ssh.list import ListFiles
-
-
-def get_env_or_skip(key: str, message: str | None = None) -> str:
-    """Get environment variable or skip test."""
-    value = environ.get(key, "")
-    if message is None:
-        message = f"Skipped because the needed environment variable '{key}' is not set."
-    if value == "":
-        pytest.skip(message)
-    return value
+from tests.fixtures import (
+    SSH_HOSTNAME,
+    SSH_PASSWORD,
+    SSH_PORT,
+    SSH_PRIVATE_KEY,
+    SSH_PRIVATE_KEY_WITH_PASSWORD,
+    SSH_USERNAME,
+)
 
 
 @dataclass
@@ -34,6 +31,7 @@ class TestingEnvironment:
     private_key: str
     private_key_with_password: str
     password: str
+    error_handling: str
     path: str
     regex: str
     no_subfolder: bool
@@ -44,13 +42,14 @@ class TestingEnvironment:
 @pytest.fixture
 def testing_environment() -> TestingEnvironment:
     """Provide testing environment"""
-    hostname = get_env_or_skip("SSH_HOSTNAME")
-    port = int(get_env_or_skip("SSH_PORT"))
-    username = get_env_or_skip("SSH_USERNAME")
+    hostname = SSH_HOSTNAME
+    port = SSH_PORT
+    username = SSH_USERNAME
     authentication_method = "key"
-    private_key = get_env_or_skip("SSH_PRIVATE_KEY")
-    private_key_with_password = get_env_or_skip("SSH_PRIVATE_KEY_WITH_PASSWORD")
-    password = get_env_or_skip("SSH_PASSWORD")
+    private_key = SSH_PRIVATE_KEY
+    private_key_with_password = SSH_PRIVATE_KEY_WITH_PASSWORD
+    password = SSH_PASSWORD
+    error_handling = "error"
     path = "volume"
     regex = "^.*$"
     no_subfolder = False
@@ -64,6 +63,7 @@ def testing_environment() -> TestingEnvironment:
         password=password,
         authentication_method=authentication_method,
         no_subfolder=no_subfolder,
+        error_handling=error_handling,
     )
     return TestingEnvironment(
         hostname=hostname,
@@ -76,6 +76,7 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         no_subfolder=no_subfolder,
         regex=regex,
+        error_handling=error_handling,
         list_plugin=list_plugin,
     )
 

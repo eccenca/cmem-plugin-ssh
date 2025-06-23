@@ -16,5 +16,13 @@ RUN chown -R testuser:testuser /home/testuser/.ssh && \
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
     echo "AllowUsers testuser" >> /etc/ssh/sshd_config
 
+RUN mkdir /restricted && \
+    chmod 700 /restricted && \
+    chown root:root /restricted
+
+RUN touch /etc/restricted.txt && \
+    chmod 700 /etc/restricted.txt && \
+    chown root:root /etc/restricted.txt
+
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]

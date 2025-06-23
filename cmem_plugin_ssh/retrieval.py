@@ -4,7 +4,6 @@ import re
 import stat
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 from typing import Any
 
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
@@ -43,49 +42,55 @@ class SSHRetrieval:
             self.sftp_pool.client = self.ssh_client.open_sftp()
         return self.sftp_pool.client
 
-    # for now, ignore that it is too complex, need to change after finalizing download
-    def list_files_parallel(  # noqa: PLR0913, C901
+    def list_files_parallel(  # noqa: PLR0913
         self,
         path: str,
         files: list[SFTPAttributes],
+        no_access_files: list[SFTPAttributes],
+        error_handling: str,
         context: ExecutionContext | None,
         depth: int = -1,
         curr_depth: int = 0,
         no_of_max_hits: int = -1,
-        workers: int = 32,
-        download_files: bool = False,
-        download_path: Path = Path(),
-    ) -> list[SFTPAttributes]:
-        """List all files recursively with concurrency. Can also download when the flag is set."""
+        workers: int = 1,
+    ) -> tuple[list[SFTPAttributes], list[SFTPAttributes]]:
+        """List all files recursively with concurrency"""
         if curr_depth == 0:
             self.stop_event.clear()
 
         self.cancel_listdir(context)
         if self.stop_event.is_set() or (depth != -1 and curr_depth >= depth):
-            return files
+            return files, no_access_files
 
         subdirectories: list[str] = []
-        items = self._get_folder_items(path)
+        items = self._get_folder_items(path, error_handling)
 
         for item in items:
+            full_path = f"{path.rstrip('/')}/{item.filename}"
+            item_mode = item.st_mode
+
+            if not stat.S_ISDIR(item_mode):
+                try:
+                    with self.get_sftp().open(full_path, "r") as f:
+                        f.read(1)
+                except PermissionError as e:
+                    if error_handling == "ignore":
+                        pass
+                    elif error_handling == "warning":
+                        no_access_files.append(item)
+                    else:
+                        raise PermissionError(f"No access to '{item.filename}': {e}") from e
             self.cancel_listdir(context)
             if self.stop_event.is_set():
-                return files
+                return files, no_access_files
 
             added = self.add_node(files, item, no_of_max_hits)
-
-            if added and download_files:
-                full_path = f"{path.rstrip('/')}/{item.filename}"
-                self.get_sftp().get(remotepath=full_path, localpath=download_path / item.filename)
-
             context_report(context, files)
 
             if added and self.check_stop(files, no_of_max_hits):
-                return files
+                return files, no_access_files
 
-            item_mode = item.st_mode
             if item_mode and stat.S_ISDIR(item_mode) and not self.no_subfolder:
-                full_path = f"{path.rstrip('/')}/{item.filename}"
                 subdirectories.append(full_path)
 
         if subdirectories and not self.stop_event.is_set():
@@ -95,6 +100,8 @@ class SSHRetrieval:
                         self.list_files_parallel,
                         sd,
                         files,
+                        no_access_files,
+                        error_handling,
                         None,
                         depth,
                         curr_depth + 1,
@@ -110,7 +117,7 @@ class SSHRetrieval:
                     fut.result()
                     context_report(context, files)
 
-        return files
+        return files, no_access_files
 
     def check_stop(self, files: list[Any], max_results: int) -> bool:
         """Check whether max_results reached and stop if so"""
@@ -146,5 +153,12 @@ class SSHRetrieval:
 
         return False
 
-    def _get_folder_items(self, path: str) -> Any:  # noqa: ANN401
-        return self.get_sftp().listdir_attr(path if path else ".")
+    def _get_folder_items(self, path: str, error_handling: str) -> Any:  # noqa: ANN401
+        try:
+            return self.get_sftp().listdir_attr(path or ".")
+        except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
+            if error_handling in {"warning", "ignore"}:
+                return []
+            if error_handling == "error":
+                raise ValueError(f"Unable to list folder items at '{path or '.'}': {e}") from e
+            return None

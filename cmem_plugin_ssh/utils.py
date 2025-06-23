@@ -12,6 +12,13 @@ PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
 AUTHENTICATION_CHOICES = OrderedDict({PASSWORD: "Password", PRIVATE_KEY: "Key"})
 
+IGNORE = "ignore"
+WARNING = "warning"
+ERROR = "error"
+ERROR_HANDLING_CHOICES = OrderedDict({IGNORE: "Ignore", WARNING: "Warning", ERROR: "Error"})
+
+MAX_WORKERS = 32
+
 
 def load_private_key(private_key: str | Password, password: str | Password) -> PKey | None:
     """Load the private key correctly"""
@@ -41,6 +48,13 @@ def load_private_key(private_key: str | Password, password: str | Password) -> P
             key_file.seek(0)  # Reset file pointer for next try
             continue
     return None
+
+
+def setup_max_workers(max_workers: int) -> int:
+    """Return the correct number of workers"""
+    if 0 < max_workers <= MAX_WORKERS:
+        return max_workers
+    raise ValueError("Range of max_workers exceeded")
 
 
 def generate_schema() -> EntitySchema:

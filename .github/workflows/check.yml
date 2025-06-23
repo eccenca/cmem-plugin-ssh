@@ -54,12 +54,6 @@ jobs:
         env:
           CMEM_BASE_URI: ${{ secrets.CMEM_BASE_URI }}
           OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOSTNAME: ${{ secrets.SSH_HOSTNAME }}
-          SSH_PRIVATE_KEY_WITH_PASSWORD: ${{ secrets.SSH_PRIVATE_KEY_WITH_PASSWORD }}
         run: |
           task check:pytest
 

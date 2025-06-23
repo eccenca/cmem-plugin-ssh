@@ -84,7 +84,17 @@ class DirectoryParameterType(StringParameterType):
 
         if selected_path == "":
             sftp.chdir(None)
-            files_and_folders = sftp.listdir_attr()
+            try:
+                files_and_folders = sftp.listdir_attr()
+            except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
+                current_dir = sftp.normalize(".")
+                parent_dir = (
+                    current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
+                )
+                self.suggestions = [Autocompletion(value=parent_dir, label=parent_dir)]
+                raise ValueError(
+                    f"Unable to list folder items at '{current_dir or '.'}': {e}"
+                ) from e
             folders = [
                 f.filename
                 for f in files_and_folders
@@ -115,7 +125,17 @@ class DirectoryParameterType(StringParameterType):
 
         if entered_directory:
             sftp.chdir(entered_directory)
-            files_and_folders = sftp.listdir_attr()
+            try:
+                files_and_folders = sftp.listdir_attr()
+            except (paramiko.ChannelException, OSError, paramiko.SFTPError) as e:
+                current_dir = sftp.normalize(".")
+                parent_dir = (
+                    current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
+                )
+                self.suggestions = [Autocompletion(value=parent_dir, label=parent_dir)]
+                raise ValueError(
+                    f"Unable to list folder items at '{current_dir or '.'}': {e}"
+                ) from e
             folders = [
                 f.filename
                 for f in files_and_folders
