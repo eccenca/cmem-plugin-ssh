@@ -95,13 +95,13 @@ from cmem_plugin_ssh.utils import (
             name="error_handling",
             label="Error handling for missing permissions.",
             description="A choice on how to handle errors concerning the permissions rights."
-                        "When choosing 'ignore' all files get listed regardless if the current "
-                        "user has correct permission rights"
-                        "When choosing 'warning' all files get listed however there will be "
-                        "a mention that some of the files are not under the users permissions"
-                        "if there are any"
-                        "When choosing 'error' the files will not get listed if there"
-                        "there are files the user has no access to.",
+            "When choosing 'ignore' all files get listed regardless if the current "
+            "user has correct permission rights"
+            "When choosing 'warning' all files get listed however there will be "
+            "a mention that some of the files are not under the users permissions"
+            "if there are any"
+            "When choosing 'error' the files will not get listed if there"
+            "there are files the user has no access to.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
         ),
         PluginParameter(
@@ -115,8 +115,8 @@ from cmem_plugin_ssh.utils import (
             name="max_workers",
             label="Maximum amount of workers.",
             description="Determines the amount of workers used for concurrent thread execution "
-                        "of the task. Default is 1. Note that too many workers can cause a "
-                        "ChannelException.",
+            "of the task. Default is 1. Note that too many workers can cause a "
+            "ChannelException.",
             default_value=1,
             advanced=True,
         ),
@@ -245,11 +245,19 @@ class DownloadFiles(WorkflowPlugin):
             context=None,
             path=self.path,
             error_handling=self.error_handling,
-            download_files=True,
-            download_path=self.download_dir,
-            no_access_files=[]
+            no_access_files=[],
         )[0]
 
         for file in files:
-            entities.append(LocalFile(file.filename))  # noqa: PERF401
+            try:
+                self.sftp.get(
+                    remotepath=file.filename, localpath=self.download_dir / Path(file.filename).name
+                )
+                entities.append(LocalFile(Path(file.filename).name))
+            except (PermissionError, OSError) as e:
+                if self.error_handling in {"ignore", "warning"}:
+                    pass
+                else:
+                    raise ValueError(f"No access to '{file.filename}': {e}") from e
+
         return entities

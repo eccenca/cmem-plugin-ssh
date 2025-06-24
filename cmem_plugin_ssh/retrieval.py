@@ -4,7 +4,6 @@ import re
 import stat
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 from typing import Any
 
 import paramiko
@@ -55,8 +54,6 @@ class SSHRetrieval:
         curr_depth: int = 0,
         no_of_max_hits: int = -1,
         workers: int = 1,
-        download_files: bool = False,
-        download_path: Path = Path(),
     ) -> tuple[list[SFTPAttributes], list[SFTPAttributes]]:
         """List all files recursively with concurrency"""
         if curr_depth == 0:
@@ -88,10 +85,7 @@ class SSHRetrieval:
             if self.stop_event.is_set():
                 return files, no_access_files
 
-            added = self.add_node(files, item, no_of_max_hits)
-            if added and download_files:
-                full_path = f"{path.rstrip('/')}/{item.filename}"
-                self.get_sftp().get(remotepath=full_path, localpath=download_path / item.filename)
+            added = self.add_node(files, item, no_of_max_hits, path)
 
             context_report(context, files)
 
@@ -144,7 +138,7 @@ class SSHRetrieval:
             pass
 
     def add_node(
-        self, files: list[SFTPAttributes], item: SFTPAttributes, no_of_max_hits: int
+        self, files: list[SFTPAttributes], item: SFTPAttributes, no_of_max_hits: int, path: str
     ) -> bool:
         """Add file or folder node to result"""
         with self.lock:
@@ -154,6 +148,9 @@ class SSHRetrieval:
 
             mode = item.st_mode
             if mode and re.fullmatch(self.regex, item.filename) and not stat.S_ISDIR(mode):
+                path = self.get_sftp().normalize(path)
+                full_path = f"{path.rstrip('/')}/{item.filename}"
+                item.filename = full_path
                 files.append(item)
                 if no_of_max_hits != -1 and len(files) >= no_of_max_hits:
                     self.stop_event.set()
