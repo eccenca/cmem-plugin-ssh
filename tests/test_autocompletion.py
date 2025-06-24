@@ -83,3 +83,25 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
             depend_on_parameter_values=depends_on,
             context=TestPluginContext(),
         )
+
+
+def test_path_autocompletion_order(testing_environment: TestingEnvironment) -> None:
+    """Test correct order for autocompleted path suggestions"""
+    plugin = testing_environment.list_plugin
+    depends_on = [
+        plugin.hostname,
+        plugin.port,
+        plugin.username,
+        plugin.private_key,
+        plugin.password,
+        plugin.authentication_method,
+        plugin.path,
+    ]
+    autocompletion = DirectoryParameterType(url_expand="", display_name="")
+    autocompletion_result = autocompletion.autocomplete(
+        query_terms=["volume"],
+        depend_on_parameter_values=depends_on,
+        context=TestPluginContext(),
+    )
+    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_result[0].label
+    assert "home/testuser" in autocompletion_result[-1].label
