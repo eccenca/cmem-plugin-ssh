@@ -6,14 +6,16 @@ from pathlib import Path
 import paramiko
 from cmem_plugin_base.dataintegration.context import (
     ExecutionContext,
+    ExecutionReport,
 )
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
-from cmem_plugin_base.dataintegration.entity import Entities
+from cmem_plugin_base.dataintegration.entity import Entities, Entity
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema, LocalFile
+from paramiko import SFTPAttributes
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import generate_schema
@@ -226,15 +228,12 @@ class DownloadFiles(WorkflowPlugin):
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
-        _ = context
         schema = FileEntitySchema()
-        files = self.download_no_input()
-        entities = [schema.to_entity(file) for file in files]
-        return Entities(entities=iter(entities), schema=schema)
 
-    def download_no_input(self) -> list:
-        """Download files with no given input"""
-        entities = []
+        context.report.update(
+            ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
+        )
+
         retrieval = SSHRetrieval(
             ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
@@ -242,13 +241,68 @@ class DownloadFiles(WorkflowPlugin):
         )
         files = retrieval.list_files_parallel(
             files=[],
-            context=None,
+            context=context,
             path=self.path,
             error_handling=self.error_handling,
             no_access_files=[],
-        )[0]
+        )
 
-        for file in files:
+        downloaded_files = self.download_no_input(files)
+        entities = [schema.to_entity(file) for file in downloaded_files]
+
+        if self.error_handling == "warning" and len(files[1]) > 0:
+            faulty_files = files[1]
+            faulty_entities = []
+            for file in faulty_files:
+                faulty_entities.append(  # noqa: PERF401
+                    Entity(
+                        uri=file.filename,
+                        values=[
+                            [file.filename],
+                            [str(file.st_size)],
+                            [str(file.st_uid)],
+                            [str(file.st_gid)],
+                            [str(file.st_mode)],
+                            [str(file.st_atime)],
+                            [str(file.st_mtime)],
+                        ],
+                    )
+                )
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(faulty_entities), schema=generate_schema()
+                    ),
+                    warnings=[
+                        "Some files have been listed that the current user does not have access to."
+                        "Those files have been listed below as sample entities."
+                    ],
+                )
+            )
+
+        else:
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(entities[:10]), schema=schema
+                    ),
+                )
+            )
+
+        self.close_connections()
+
+        return Entities(entities=iter(entities), schema=schema)
+
+    def download_no_input(self, files: tuple[list[SFTPAttributes], list[SFTPAttributes]]) -> list:
+        """Download files with no given input"""
+        entities = []
+        for file in files[0]:
             try:
                 self.sftp.get(
                     remotepath=file.filename, localpath=self.download_dir / Path(file.filename).name
