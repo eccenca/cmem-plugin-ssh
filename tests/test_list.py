@@ -282,4 +282,4 @@ def test_preview_with_warning_error_handling(testing_environment: TestingEnviron
     plugin.path = "/etc"
     preview = plugin.preview_results()
     assert "entities were found that the current user has no access to" in preview
-    assert testing_environment.restricted_file in preview
+    assert "restricted.txt" in preview

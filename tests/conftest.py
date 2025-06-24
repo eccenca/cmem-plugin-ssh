@@ -55,7 +55,7 @@ def testing_environment() -> TestingEnvironment:
     error_handling = "error"
     path = "volume"
     regex = "^.*$"
-    restricted_file = "restricted.txt"
+    restricted_file = "/etc/restricted.txt"
     no_subfolder = False
     list_plugin = ListFiles(
         hostname=hostname,
