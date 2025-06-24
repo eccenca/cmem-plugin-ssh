@@ -234,6 +234,19 @@ class DownloadFiles(WorkflowPlugin):
             ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
         )
 
+        if len(inputs) > 0:
+            downloaded_files = self.download_with_input(inputs, context)
+            entities = [schema.to_entity(file) for file in downloaded_files]
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="write",
+                    operation_desc="files downloaded",
+                    sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
+                )
+            )
+            return Entities(entities=iter(entities), schema=schema)
+
         retrieval = SSHRetrieval(
             ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
@@ -246,7 +259,6 @@ class DownloadFiles(WorkflowPlugin):
             error_handling=self.error_handling,
             no_access_files=[],
         )
-
         downloaded_files = self.download_no_input(files)
         entities = [schema.to_entity(file) for file in downloaded_files]
 
@@ -289,9 +301,7 @@ class DownloadFiles(WorkflowPlugin):
                     entity_count=len(entities),
                     operation="done",
                     operation_desc="entities generated",
-                    sample_entities=Entities(
-                        entities=iter(entities[:10]), schema=schema
-                    ),
+                    sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
                 )
             )
 
@@ -314,4 +324,33 @@ class DownloadFiles(WorkflowPlugin):
                 else:
                     raise ValueError(f"No access to '{file.filename}': {e}") from e
 
+        return entities
+
+    def download_with_input(self, inputs: Sequence[Entities], context: ExecutionContext) -> list:
+        """Download files with a given input"""
+        entities = []
+        for entity in inputs[0].entities:
+            try:
+                if context.workflow.status() == "Canceling":
+                    break
+            except AttributeError:
+                pass
+            filename = entity.values[0][0]
+            try:
+                self.sftp.get(
+                    remotepath=filename, localpath=self.download_dir / Path(filename).name
+                )
+                entities.append(LocalFile(Path(filename).name))
+            except (PermissionError, OSError) as e:
+                if self.error_handling in {"ignore", "warning"}:
+                    pass
+                else:
+                    raise ValueError(f"No access to '{filename}': {e}") from e
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="write",
+                    operation_desc="files downloaded",
+                )
+            )
         return entities

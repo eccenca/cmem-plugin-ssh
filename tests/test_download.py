@@ -69,3 +69,16 @@ def test_download_restricted_file_ignore(testing_environment: TestingEnvironment
         plugin.download_dir = Path(tmpdir)
         result = plugin.execute(inputs=[], context=TestExecutionContext())
         assert len(list(result.entities)) == 0
+
+
+def test_download_with_input(testing_environment: TestingEnvironment) -> None:
+    """Test basic execution of download with given input from list plugin"""
+    list_plugin = testing_environment.list_plugin
+    download_plugin = testing_environment.download_plugin
+    list_result = [list_plugin.execute(inputs=[], context=TestExecutionContext())]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        download_plugin.download_dir = Path(tmpdir)
+        download_result = download_plugin.execute(
+            inputs=list_result, context=TestExecutionContext()
+        )
+        assert len(list(download_result.entities)) == testing_environment.no_of_files
