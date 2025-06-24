@@ -9,7 +9,7 @@ from cmem_plugin_base.dataintegration.context import (
     ExecutionReport,
 )
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
-from cmem_plugin_base.dataintegration.entity import Entities, Entity
+from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
@@ -235,16 +235,35 @@ class DownloadFiles(WorkflowPlugin):
         )
 
         if len(inputs) > 0:
-            downloaded_files = self.download_with_input(inputs, context)
+            downloaded_files, faulty_files = self.download_with_input(inputs, context)
             entities = [schema.to_entity(file) for file in downloaded_files]
-            context.report.update(
-                ExecutionReport(
-                    entity_count=len(entities),
-                    operation="write",
-                    operation_desc="files downloaded",
-                    sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
+            faulty_entities = [schema.to_entity(file) for file in faulty_files]
+            if self.error_handling == "warning" and len(faulty_files) > 0:
+                context.report.update(
+                    ExecutionReport(
+                        entity_count=len(entities),
+                        operation="done",
+                        operation_desc="entities generated",
+                        sample_entities=Entities(
+                            entities=iter(faulty_entities), schema=FileEntitySchema()
+                        ),
+                        warnings=[
+                            "Some files have been ignored that the current user does not have "
+                            "access to. "
+                            "Those files have been listed below as sample entities."
+                        ],
+                    )
                 )
-            )
+            else:
+                context.report.update(
+                    ExecutionReport(
+                        entity_count=len(entities),
+                        operation="write",
+                        operation_desc="files downloaded",
+                        sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
+                    )
+                )
+
             return Entities(entities=iter(entities), schema=schema)
 
         retrieval = SSHRetrieval(
@@ -262,6 +281,20 @@ class DownloadFiles(WorkflowPlugin):
         downloaded_files = self.download_no_input(files)
         entities = [schema.to_entity(file) for file in downloaded_files]
 
+        self.update_context(context, entities, files, schema)
+
+        self.close_connections()
+
+        return Entities(entities=iter(entities), schema=schema)
+
+    def update_context(
+        self,
+        context: ExecutionContext,
+        entities: list[Entity],
+        files: tuple[list[SFTPAttributes], list[SFTPAttributes]],
+        schema: EntitySchema,
+    ) -> None:
+        """Give a context update depending on the selected error handling method"""
         if self.error_handling == "warning" and len(files[1]) > 0:
             faulty_files = files[1]
             faulty_entities = []
@@ -305,10 +338,6 @@ class DownloadFiles(WorkflowPlugin):
                 )
             )
 
-        self.close_connections()
-
-        return Entities(entities=iter(entities), schema=schema)
-
     def download_no_input(self, files: tuple[list[SFTPAttributes], list[SFTPAttributes]]) -> list:
         """Download files with no given input"""
         entities = []
@@ -326,9 +355,10 @@ class DownloadFiles(WorkflowPlugin):
 
         return entities
 
-    def download_with_input(self, inputs: Sequence[Entities], context: ExecutionContext) -> list:
+    def download_with_input(self, inputs: Sequence[Entities], context: ExecutionContext):
         """Download files with a given input"""
-        entities = []
+        downloaded_entities = []
+        faulty_entities = []
         for entity in inputs[0].entities:
             try:
                 if context.workflow.status() == "Canceling":
@@ -340,17 +370,17 @@ class DownloadFiles(WorkflowPlugin):
                 self.sftp.get(
                     remotepath=filename, localpath=self.download_dir / Path(filename).name
                 )
-                entities.append(LocalFile(Path(filename).name))
+                downloaded_entities.append(LocalFile(Path(filename).name))
             except (PermissionError, OSError) as e:
                 if self.error_handling in {"ignore", "warning"}:
-                    pass
+                    faulty_entities.append(LocalFile(Path(filename).name))
                 else:
                     raise ValueError(f"No access to '{filename}': {e}") from e
             context.report.update(
                 ExecutionReport(
-                    entity_count=len(entities),
+                    entity_count=len(downloaded_entities),
                     operation="write",
                     operation_desc="files downloaded",
                 )
             )
-        return entities
+        return downloaded_entities, faulty_entities
