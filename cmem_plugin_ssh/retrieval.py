@@ -43,7 +43,6 @@ class SSHRetrieval:
             self.sftp_pool.client = self.ssh_client.open_sftp()
         return self.sftp_pool.client
 
-    # need to refactor for branches and complexity
     def list_files_parallel(  # noqa: PLR0913, C901, PLR0912
         self,
         path: str,

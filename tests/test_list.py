@@ -8,6 +8,7 @@ from paramiko import AuthenticationException
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
+from cmem_plugin_ssh.retrieval import SSHRetrieval
 from tests.conftest import TestingEnvironment
 
 
@@ -205,9 +206,80 @@ def test_preview_action(testing_environment: TestingEnvironment) -> None:
 
 
 def test_execution_denied_permission(testing_environment: TestingEnvironment) -> None:
-    """Test execution with a not permitted file"""
+    """Test execution with a not permitted file and error_handling mode error"""
     plugin = testing_environment.list_plugin
     plugin.path = "/etc"
     plugin.no_subfolder = True
     with pytest.raises(ValueError, match=r"No access to '"):
         plugin.execute(inputs=[], context=TestExecutionContext())
+
+
+def test_execution_warning_error_handling(testing_environment: TestingEnvironment) -> None:
+    """Test correct execution with warning as error_handling method."""
+    plugin = testing_environment.list_plugin
+    plugin.error_handling = "warning"
+    plugin.path = "/etc"
+
+    retrieval = SSHRetrieval(
+        ssh_client=plugin.ssh_client,
+        no_subfolder=plugin.no_subfolder,
+        regex=plugin.regex,
+    )
+    all_files = retrieval.list_files_parallel(
+        files=[],
+        context=TestExecutionContext(),
+        path=plugin.path,
+        workers=plugin.max_workers,
+        error_handling=plugin.error_handling,
+        no_access_files=[],
+    )
+    correct_files = all_files[0]
+    faulty_files = all_files[1]
+    assert len(correct_files) > len(faulty_files)
+
+    faulty_filenames = [file.filename for file in faulty_files]
+    assert "sudoers" in faulty_filenames
+
+    execution_results = plugin.execute(inputs=[], context=TestExecutionContext())
+    assert len(list(execution_results.entities)) > 0
+
+
+def test_execution_ignore_error_handling(testing_environment: TestingEnvironment) -> None:
+    """Test correct listing when ignore is the error_handling method"""
+    plugin = testing_environment.list_plugin
+    plugin.error_handling = "ignore"
+    plugin.path = "/etc"
+
+    retrieval = SSHRetrieval(
+        ssh_client=plugin.ssh_client,
+        no_subfolder=plugin.no_subfolder,
+        regex=plugin.regex,
+    )
+    all_files = retrieval.list_files_parallel(
+        files=[],
+        context=TestExecutionContext(),
+        path=plugin.path,
+        workers=plugin.max_workers,
+        error_handling=plugin.error_handling,
+        no_access_files=[],
+    )
+    correct_files = all_files[0]
+    faulty_files = all_files[1]
+
+    assert len(faulty_files) == 0
+    correct_filenames = [file.filename for file in correct_files]
+    assert "sudoers" in correct_filenames
+
+    execution_results = plugin.execute(inputs=[], context=TestExecutionContext())
+    assert len(list(execution_results.entities)) > 0
+
+
+def test_preview_with_warning_error_handling(testing_environment: TestingEnvironment) -> None:
+    """Test result preview with warnings also"""
+    plugin = testing_environment.list_plugin
+    plugin.error_handling = "warning"
+    plugin.regex = "^.txt$"
+    plugin.path = "/etc"
+    preview = plugin.preview_results()
+    assert "entities were found that the current user has no access to" in preview
+    assert testing_environment.restricted_file in preview

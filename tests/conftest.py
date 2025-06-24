@@ -35,6 +35,7 @@ class TestingEnvironment:
     path: str
     regex: str
     no_subfolder: bool
+    restricted_file: str
     list_plugin: ListFiles
     no_of_files: int = 12
 
@@ -52,6 +53,7 @@ def testing_environment() -> TestingEnvironment:
     error_handling = "error"
     path = "volume"
     regex = "^.*$"
+    restricted_file = "restricted.txt"
     no_subfolder = False
     list_plugin = ListFiles(
         hostname=hostname,
@@ -77,6 +79,7 @@ def testing_environment() -> TestingEnvironment:
         no_subfolder=no_subfolder,
         regex=regex,
         error_handling=error_handling,
+        restricted_file=restricted_file,
         list_plugin=list_plugin,
     )
 

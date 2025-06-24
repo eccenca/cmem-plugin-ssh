@@ -340,7 +340,8 @@ class ListFiles(WorkflowPlugin):
                         entities=iter(faulty_entities), schema=generate_schema()
                     ),
                     warnings=[
-                        "Some files have been listed that the current user does not have access to"
+                        "Some files have been listed that the current user does not have access to."
+                        "Those files have been listed below as sample entities."
                     ],
                 )
             )
