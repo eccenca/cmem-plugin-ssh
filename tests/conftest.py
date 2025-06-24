@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.list import ListFiles
 from tests.fixtures import (
     SSH_HOSTNAME,
@@ -37,6 +38,7 @@ class TestingEnvironment:
     no_subfolder: bool
     restricted_file: str
     list_plugin: ListFiles
+    download_plugin: DownloadFiles
     no_of_files: int = 12
 
 
@@ -67,6 +69,19 @@ def testing_environment() -> TestingEnvironment:
         no_subfolder=no_subfolder,
         error_handling=error_handling,
     )
+    download_plugin = DownloadFiles(
+        hostname=hostname,
+        port=port,
+        username=username,
+        private_key=private_key,
+        path=path,
+        regex=regex,
+        password=password,
+        authentication_method=authentication_method,
+        no_subfolder=no_subfolder,
+        error_handling=error_handling,
+    )
+
     return TestingEnvironment(
         hostname=hostname,
         port=port,
@@ -81,6 +96,7 @@ def testing_environment() -> TestingEnvironment:
         error_handling=error_handling,
         restricted_file=restricted_file,
         list_plugin=list_plugin,
+        download_plugin=download_plugin,
     )
 
 
