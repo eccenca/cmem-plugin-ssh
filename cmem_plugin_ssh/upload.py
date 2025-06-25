@@ -126,14 +126,14 @@ class UploadFiles(WorkflowPlugin):
         self.sftp.close()
         self.ssh_client.close()
 
-    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
+    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
         _ = context
         if len(inputs) == 0:
             raise ValueError("No input was given!")
 
-        files = []
+        files: list = []
         schema = FileEntitySchema()
         setup_cmempy_user_access(context.user)
 
