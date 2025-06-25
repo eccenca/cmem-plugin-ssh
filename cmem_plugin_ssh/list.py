@@ -1,0 +1,364 @@
+"""SSH List files task plugin"""
+
+from collections.abc import Sequence
+
+import paramiko
+from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
+from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginAction, PluginParameter
+from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
+from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
+from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
+from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
+
+from cmem_plugin_ssh.autocompletion import DirectoryParameterType
+from cmem_plugin_ssh.retrieval import SSHRetrieval
+from cmem_plugin_ssh.utils import (
+    AUTHENTICATION_CHOICES,
+    ERROR_HANDLING_CHOICES,
+    load_private_key,
+    setup_max_workers,
+)
+
+
+def generate_schema() -> EntitySchema:
+    """Provide the schema for files"""
+    return EntitySchema(
+        type_uri="",
+        paths=[
+            EntityPath(path="file_name"),
+            EntityPath(path="size"),
+            EntityPath(path="uid"),
+            EntityPath(path="gid"),
+            EntityPath(path="mode"),
+            EntityPath(path="atime"),
+            EntityPath(path="mtime"),
+        ],
+    )
+
+
+@Plugin(
+    label="List SSH files",
+    plugin_id="cmem_plugin_ssh-List",
+    description="List files from a given SSH instance.",
+    documentation="""
+This workflow task generates structured output from a specified SSH instance.
+
+By providing the hostname, username, port and authentication method, you can specify the
+folder from which the data should be extracted.
+
+You can also define a regular expression to include or exclude specific files.
+
+There is also an option to prevent files in subfolders from being included.
+
+#### Authentication Methods:
+* **Password:** Only the password will be used for authentication. The private key field is
+ignored, even if filled.
+* **Key:** The private key will be used for authentication. If the key is encrypted, the password
+will be used to decrypt it.
+
+#### Error handling modes:
+* **Ignore:** Ignores the permission rights of files and lists them all. Skips folders when there
+is no correct permission.
+* **Warning:** Warns the user about files that the user has no permission rights to. Lists all files
+and skips folder when there is no correct permission.
+* **Error:** Throws an error when there is a single file or folder with incorrect permission rights.
+
+#### Note:
+* If a connection cannot be established within 20 seconds, a timeout occurs.
+* Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
+* Setting the maximum amount of workers to more than 1 may cause a Channel Exception when
+the amount of files is too large
+    """,
+    icon=Icon(package=__package__, file_name="ssh-icon.svg"),
+    actions=[
+        PluginAction(
+            name="preview_results",
+            label="Preview results (max. 10)",
+            description="Lists 10 files as a preview.",
+        )
+    ],
+    parameters=[
+        PluginParameter(
+            name="hostname",
+            label="Hostname",
+            description="Hostname to connect to.Usually in the form of an IP address",
+        ),
+        PluginParameter(
+            name="port",
+            label="Port",
+            description="The port on which the connection will be tried on. Default is 22.",
+            default_value=22,
+        ),
+        PluginParameter(
+            name="username",
+            label="Username",
+            description="The username of which a connection will be instantiated.",
+        ),
+        PluginParameter(
+            name="authentication_method",
+            label="Authentication method",
+            description="The method that is used to connect to the SSH server.",
+            param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
+        ),
+        PluginParameter(
+            name="private_key",
+            label="Private key",
+            description="Your private key to connect via SSH.",
+            param_type=PasswordParameterType(),
+            default_value="",
+        ),
+        PluginParameter(
+            name="password",
+            label="Password",
+            description="Depending on your authentication method this will either be used to"
+            "connect via password to SSH or is used to decrypt the SSH private key",
+            param_type=PasswordParameterType(),
+            default_value="",
+        ),
+        PluginParameter(
+            name="path",
+            label="Path",
+            description="The currently selected path withing your SSH instance.",
+            default_value="",
+            param_type=DirectoryParameterType("directories", "Folder"),
+        ),
+        PluginParameter(
+            name="regex",
+            label="Regular expression",
+            description="A regular expression used to define which files will get listed.",
+            default_value="^.*$",
+        ),
+        PluginParameter(
+            name="error_handling",
+            label="Error handling for missing permissions.",
+            description="A choice on how to handle errors concerning the permissions rights."
+            "When choosing 'ignore' all files get listed regardless if the current "
+            "user has correct permission rights"
+            "When choosing 'warning' all files get listed however there will be "
+            "a mention that some of the files are not under the users permissions"
+            "if there are any"
+            "When choosing 'error' the files will not get listed if there"
+            "there are files the user has no access to.",
+            param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+        ),
+        PluginParameter(
+            name="no_subfolder",
+            label="No subfolder",
+            description="When this flag is set, only files from the current directory "
+            "will be listed.",
+            default_value=False,
+        ),
+        PluginParameter(
+            name="max_workers",
+            label="Maximum amount of workers.",
+            description="Determines the amount of workers used for concurrent thread execution "
+            "of the task. Default is 1, maximum is 32. Note that too many workers can cause a "
+            "ChannelException.",
+            default_value=1,
+            advanced=True,
+        ),
+    ],
+)
+class ListFiles(WorkflowPlugin):
+    """List Plugin SSH"""
+
+    def __init__(  # noqa: PLR0913
+        self,
+        hostname: str,
+        port: int,
+        username: str,
+        authentication_method: str,
+        private_key: str | Password,
+        password: str | Password,
+        path: str,
+        error_handling: str,
+        no_subfolder: bool,
+        regex: str = "",
+        max_workers: int = 1,
+    ):
+        self.hostname = hostname
+        self.port = port
+        self.username = username
+        self.authentication_method = authentication_method
+        self.private_key = private_key
+        self.password = password if isinstance(password, str) else password.decrypt()
+        self.error_handling = error_handling
+        self.path = path
+        self.no_subfolder = no_subfolder
+        self.regex = rf"{regex}"
+        self.max_workers = setup_max_workers(max_workers)
+        self.input_ports = FixedNumberOfInputs([])
+        self.output_port = FixedSchemaPort(schema=generate_schema())
+        self.ssh_client = paramiko.SSHClient()
+        self.connect_ssh_client()
+        self.sftp = self.ssh_client.open_sftp()
+
+    def close_connections(self) -> None:
+        """Close connection from sftp and ssh"""
+        self.sftp.close()
+        self.ssh_client.close()
+
+    def connect_ssh_client(self) -> None:
+        """Connect to the ssh client with the selected authentication method"""
+        if self.authentication_method == "key":
+            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh_client.connect(
+                hostname=self.hostname,
+                username=self.username,
+                pkey=load_private_key(self.private_key, self.password),
+                password=self.password,
+                port=self.port,
+                timeout=20,
+            )
+        elif self.authentication_method == "password":
+            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            self.ssh_client.connect(
+                hostname=self.hostname,
+                username=self.username,
+                password=self.password,
+                port=self.port,
+                timeout=20,
+            )
+
+    def preview_results(self) -> str:
+        """Preview the results of an execution"""
+        retrieval = SSHRetrieval(
+            ssh_client=self.ssh_client,
+            no_subfolder=self.no_subfolder,
+            regex=self.regex,
+        )
+        files = retrieval.list_files_parallel(
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
+        )[0]
+        no_access_files = retrieval.list_files_parallel(
+            files=[],
+            context=None,
+            path=self.path,
+            no_of_max_hits=10,
+            error_handling=self.error_handling,
+            workers=self.max_workers,
+            no_access_files=[],
+        )[1]
+        output = [f"The Following {len(files)} entities were found:", ""]
+        output.extend(f"- {file.filename}" for file in files)
+        if len(no_access_files) > 0:
+            output.append(
+                f"\nThe following {len(no_access_files)} entities were found that the current user "
+                f"has no access to:"
+            )
+            output.extend(f"- {no_access_file.filename}" for no_access_file in no_access_files)
+        output.append(
+            "\n ## Note: \nSince not all files are included in this preview, "
+            "the selected error handling method might not always yield accurate results"
+        )
+        return "\n".join(output)
+
+    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
+        """Execute the workflow task"""
+        _ = inputs
+        context.report.update(
+            ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
+        )
+        entities = []
+
+        retrieval = SSHRetrieval(
+            ssh_client=self.ssh_client,
+            no_subfolder=self.no_subfolder,
+            regex=self.regex,
+        )
+        all_files = retrieval.list_files_parallel(
+            files=[],
+            context=context,
+            path=self.path,
+            workers=self.max_workers,
+            error_handling=self.error_handling,
+            no_access_files=[],
+        )
+        files = all_files[0]
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(files), operation="wait", operation_desc="files listed."
+            )
+        )
+
+        for file in files:
+            entities.append(
+                Entity(
+                    uri=file.filename,
+                    values=[
+                        [file.filename],
+                        [str(file.st_size)],
+                        [str(file.st_uid)],
+                        [str(file.st_gid)],
+                        [str(file.st_mode)],
+                        [str(file.st_atime)],
+                        [str(file.st_mtime)],
+                    ],
+                )
+            )
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="write",
+                    operation_desc="entities generated",
+                )
+            )
+
+        if self.error_handling == "warning" and len(all_files[1]) > 0:
+            faulty_files = all_files[1]
+            faulty_entities = []
+            for file in faulty_files:
+                faulty_entities.append(  # noqa: PERF401
+                    Entity(
+                        uri=file.filename,
+                        values=[
+                            [file.filename],
+                            [str(file.st_size)],
+                            [str(file.st_uid)],
+                            [str(file.st_gid)],
+                            [str(file.st_mode)],
+                            [str(file.st_atime)],
+                            [str(file.st_mtime)],
+                        ],
+                    )
+                )
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(faulty_entities), schema=generate_schema()
+                    ),
+                    warnings=[
+                        "Some files have been listed that the current user does not have access to."
+                        "Those files have been listed below as sample entities."
+                    ],
+                )
+            )
+
+        else:
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="done",
+                    operation_desc="entities generated",
+                    sample_entities=Entities(
+                        entities=iter(entities[:10]), schema=generate_schema()
+                    ),
+                )
+            )
+
+        self.close_connections()
+
+        return Entities(
+            entities=iter(entities),
+            schema=generate_schema(),
+        )
