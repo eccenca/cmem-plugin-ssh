@@ -4,14 +4,14 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import paramiko
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
-from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema
+from cmem_plugin_base.dataintegration.typed_entities.file import File, FileEntitySchema
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
@@ -131,11 +131,43 @@ class UploadFiles(WorkflowPlugin):
         _ = context
         if len(inputs) == 0:
             raise ValueError("No input was given!")
+
+        entities = []
+        files = []
         schema = FileEntitySchema()
+
         for entity in inputs[0].entities:
             file = schema.from_entity(entity)
             file_name = Path(file.path).name
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(files),
+                    operation="upload",
+                    operation_desc=f"uploading {file_name}",
+                )
+            )
             with file.read_stream(context.task.project_id()) as input_file:
-                self.sftp.putfo(input_file, f"{self.path}/{file_name}")
+                try:
+                    self.sftp.putfo(input_file, f"{self.path}/{file_name}")
+                except FileNotFoundError as e:
+                    raise ValueError(f"File not found: {e}") from e
+            files.append(
+                File(
+                    path=file.path,
+                    entry_path=file.entry_path,
+                    mime=file.mime,
+                    file_type=file.file_type,
+                )
+            )
 
-        return None
+        entities = [schema.to_entity(file) for file in files]
+
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(entities),
+                operation="write",
+                operation_desc="files uploaded",
+                sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
+            )
+        )
+        return Entities(entities=iter(entities), schema=schema)
