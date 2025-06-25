@@ -171,4 +171,5 @@ class UploadFiles(WorkflowPlugin):
                 sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
             )
         )
+        self.close_connections()
         return Entities(entities=iter(entities), schema=schema)
