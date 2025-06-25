@@ -92,6 +92,7 @@ the amount of files is too large
             label="Authentication method",
             description="The method that is used to connect to the SSH server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
+            default_value="password",
         ),
         PluginParameter(
             name="private_key",
@@ -133,6 +134,7 @@ the amount of files is too large
             "When choosing 'error' the files will not get downloaded if there"
             "is even a single file the user has no access to.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+            default_value="error",
         ),
         PluginParameter(
             name="no_subfolder",
