@@ -18,7 +18,7 @@ from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchem
 from paramiko import SFTPAttributes
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
-from cmem_plugin_ssh.list import generate_schema
+from cmem_plugin_ssh.list import generate_list_schema
 from cmem_plugin_ssh.retrieval import SSHRetrieval
 from cmem_plugin_ssh.utils import (
     AUTHENTICATION_CHOICES,
@@ -152,8 +152,8 @@ class DownloadFiles(WorkflowPlugin):
         self.no_subfolder = no_subfolder
         self.regex = rf"{regex}"
         self.max_workers = setup_max_workers(max_workers)
-        self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_schema())])
-        self.output_port = FixedSchemaPort(schema=generate_schema())
+        self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_list_schema())])
+        self.output_port = FixedSchemaPort(schema=generate_list_schema())
         self.download_dir = Path()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
@@ -193,7 +193,7 @@ class DownloadFiles(WorkflowPlugin):
             no_subfolder=self.no_subfolder,
             regex=self.regex,
         )
-        files = retrieval.list_files_parallel(
+        all_files = retrieval.list_files_parallel(
             files=[],
             context=None,
             path=self.path,
@@ -201,16 +201,10 @@ class DownloadFiles(WorkflowPlugin):
             error_handling=self.error_handling,
             workers=self.max_workers,
             no_access_files=[],
-        )[0]
-        no_access_files = retrieval.list_files_parallel(
-            files=[],
-            context=None,
-            path=self.path,
-            no_of_max_hits=10,
-            error_handling=self.error_handling,
-            workers=self.max_workers,
-            no_access_files=[],
-        )[1]
+        )
+        files = all_files[0]
+        no_access_files = all_files[1]
+
         output = [f"The Following {len(files)} entities were found:", ""]
         output.extend(f"- {file.filename}" for file in files)
         if len(no_access_files) > 0:
@@ -319,7 +313,7 @@ class DownloadFiles(WorkflowPlugin):
                     operation="done",
                     operation_desc="entities generated",
                     sample_entities=Entities(
-                        entities=iter(faulty_entities), schema=generate_schema()
+                        entities=iter(faulty_entities), schema=generate_list_schema()
                     ),
                     warnings=[
                         "Some files have been listed that the current user does not have access to."
@@ -355,7 +349,9 @@ class DownloadFiles(WorkflowPlugin):
 
         return entities
 
-    def download_with_input(self, inputs: Sequence[Entities], context: ExecutionContext):
+    def download_with_input(
+        self, inputs: Sequence[Entities], context: ExecutionContext
+    ) -> tuple[list, list]:
         """Download files with a given input"""
         downloaded_entities = []
         faulty_entities = []

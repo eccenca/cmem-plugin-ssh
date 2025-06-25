@@ -16,7 +16,7 @@ from cmem_plugin_ssh.retrieval import SSHRetrieval
 from cmem_plugin_ssh.utils import (
     AUTHENTICATION_CHOICES,
     ERROR_HANDLING_CHOICES,
-    generate_schema,
+    generate_list_schema,
     load_private_key,
     setup_max_workers,
 )
@@ -176,7 +176,7 @@ class ListFiles(WorkflowPlugin):
         self.regex = rf"{regex}"
         self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([])
-        self.output_port = FixedSchemaPort(schema=generate_schema())
+        self.output_port = FixedSchemaPort(schema=generate_list_schema())
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
@@ -322,7 +322,7 @@ class ListFiles(WorkflowPlugin):
                     operation="done",
                     operation_desc="entities generated",
                     sample_entities=Entities(
-                        entities=iter(faulty_entities), schema=generate_schema()
+                        entities=iter(faulty_entities), schema=generate_list_schema()
                     ),
                     warnings=[
                         "Some files have been listed that the current user does not have access to."
@@ -338,7 +338,7 @@ class ListFiles(WorkflowPlugin):
                     operation="done",
                     operation_desc="entities generated",
                     sample_entities=Entities(
-                        entities=iter(entities[:10]), schema=generate_schema()
+                        entities=iter(entities[:10]), schema=generate_list_schema()
                     ),
                 )
             )
@@ -347,5 +347,5 @@ class ListFiles(WorkflowPlugin):
 
         return Entities(
             entities=iter(entities),
-            schema=generate_schema(),
+            schema=generate_list_schema(),
         )
