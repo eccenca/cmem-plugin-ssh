@@ -9,6 +9,7 @@ import pytest
 
 from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.list import ListFiles
+from cmem_plugin_ssh.upload import UploadFiles
 from tests.fixtures import (
     SSH_HOSTNAME,
     SSH_PASSWORD,
@@ -39,6 +40,7 @@ class TestingEnvironment:
     restricted_file: str
     list_plugin: ListFiles
     download_plugin: DownloadFiles
+    upload_plugin: UploadFiles
     no_of_files: int = 12
 
 
@@ -81,6 +83,15 @@ def testing_environment() -> TestingEnvironment:
         no_subfolder=no_subfolder,
         error_handling=error_handling,
     )
+    upload_plugin = UploadFiles(
+        hostname=hostname,
+        port=port,
+        username=username,
+        private_key=private_key,
+        path=path,
+        password=password,
+        authentication_method=authentication_method,
+    )
 
     return TestingEnvironment(
         hostname=hostname,
@@ -97,6 +108,7 @@ def testing_environment() -> TestingEnvironment:
         restricted_file=restricted_file,
         list_plugin=list_plugin,
         download_plugin=download_plugin,
+        upload_plugin=upload_plugin,
     )
 
 

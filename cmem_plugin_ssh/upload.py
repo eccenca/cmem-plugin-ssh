@@ -12,6 +12,7 @@ from cmem_plugin_base.dataintegration.parameter.password import Password, Passwo
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.typed_entities.file import File, FileEntitySchema
+from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
@@ -132,9 +133,9 @@ class UploadFiles(WorkflowPlugin):
         if len(inputs) == 0:
             raise ValueError("No input was given!")
 
-        entities = []
         files = []
         schema = FileEntitySchema()
+        setup_cmempy_user_access(context.user)
 
         for entity in inputs[0].entities:
             file = schema.from_entity(entity)
@@ -149,8 +150,8 @@ class UploadFiles(WorkflowPlugin):
             with file.read_stream(context.task.project_id()) as input_file:
                 try:
                     self.sftp.putfo(input_file, f"{self.path}/{file_name}")
-                except FileNotFoundError as e:
-                    raise ValueError(f"File not found: {e}") from e
+                except (FileNotFoundError, PermissionError, OSError) as e:
+                    raise ValueError(f"An error occurred during upload: {e}") from e
             files.append(
                 File(
                     path=file.path,
