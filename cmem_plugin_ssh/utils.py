@@ -57,7 +57,7 @@ def setup_max_workers(max_workers: int) -> int:
     raise ValueError("Range of max_workers exceeded")
 
 
-def generate_schema() -> EntitySchema:
+def generate_list_schema() -> EntitySchema:
     """Provide the schema for files"""
     return EntitySchema(
         type_uri="",
