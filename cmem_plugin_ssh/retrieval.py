@@ -85,7 +85,8 @@ class SSHRetrieval:
             if self.stop_event.is_set():
                 return files, no_access_files
 
-            added = self.add_node(files, item, no_of_max_hits)
+            added = self.add_node(files, item, no_of_max_hits, path)
+
             context_report(context, files)
 
             if added and self.check_stop(files, no_of_max_hits):
@@ -137,7 +138,7 @@ class SSHRetrieval:
             pass
 
     def add_node(
-        self, files: list[SFTPAttributes], item: SFTPAttributes, no_of_max_hits: int
+        self, files: list[SFTPAttributes], item: SFTPAttributes, no_of_max_hits: int, path: str
     ) -> bool:
         """Add file or folder node to result"""
         with self.lock:
@@ -147,6 +148,9 @@ class SSHRetrieval:
 
             mode = item.st_mode
             if mode and re.fullmatch(self.regex, item.filename) and not stat.S_ISDIR(mode):
+                path = self.get_sftp().normalize(path)
+                full_path = f"{path.rstrip('/')}/{item.filename}"
+                item.filename = full_path
                 files.append(item)
                 if no_of_max_hits != -1 and len(files) >= no_of_max_hits:
                     self.stop_event.set()

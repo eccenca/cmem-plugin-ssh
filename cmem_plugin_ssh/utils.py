@@ -4,8 +4,11 @@ import io
 import re
 from collections import OrderedDict
 
+from cmem_plugin_base.dataintegration.entity import EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.password import Password
-from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
+from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHClient, SSHException
+
+from cmem_plugin_ssh.retrieval import SSHRetrieval
 
 PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
@@ -54,3 +57,60 @@ def setup_max_workers(max_workers: int) -> int:
     if 0 < max_workers <= MAX_WORKERS:
         return max_workers
     raise ValueError("Range of max_workers exceeded")
+
+
+def generate_list_schema() -> EntitySchema:
+    """Provide the schema for files"""
+    return EntitySchema(
+        type_uri="",
+        paths=[
+            EntityPath(path="file_name"),
+            EntityPath(path="size"),
+            EntityPath(path="uid"),
+            EntityPath(path="gid"),
+            EntityPath(path="mode"),
+            EntityPath(path="atime"),
+            EntityPath(path="mtime"),
+        ],
+    )
+
+
+def preview_results(  # noqa: PLR0913
+    ssh_client: SSHClient,
+    no_subfolder: bool,
+    regex: str,
+    path: str,
+    error_handling: str,
+    max_workers: int,
+) -> str:
+    """Preview the results of an execution"""
+    retrieval = SSHRetrieval(
+        ssh_client=ssh_client,
+        no_subfolder=no_subfolder,
+        regex=regex,
+    )
+    all_files = retrieval.list_files_parallel(
+        files=[],
+        context=None,
+        path=path,
+        no_of_max_hits=10,
+        error_handling=error_handling,
+        workers=max_workers,
+        no_access_files=[],
+    )
+    files = all_files[0]
+    no_access_files = all_files[1]
+
+    output = [f"The Following {len(files)} entities were found:", ""]
+    output.extend(f"- {file.filename}" for file in files)
+    if len(no_access_files) > 0:
+        output.append(
+            f"\nThe following {len(no_access_files)} entities were found that the current user "
+            f"has no access to:"
+        )
+        output.extend(f"- {no_access_file.filename}" for no_access_file in no_access_files)
+    output.append(
+        "\n ## Note: \nSince not all files are included in this preview, "
+        "the selected error handling method might not always yield accurate results"
+    )
+    return "\n".join(output)

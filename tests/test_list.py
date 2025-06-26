@@ -238,7 +238,7 @@ def test_execution_warning_error_handling(testing_environment: TestingEnvironmen
     assert len(correct_files) > len(faulty_files)
 
     faulty_filenames = [file.filename for file in faulty_files]
-    assert "sudoers" in faulty_filenames
+    assert "/etc/sudoers" in faulty_filenames
 
     execution_results = plugin.execute(inputs=[], context=TestExecutionContext())
     assert len(list(execution_results.entities)) > 0
@@ -268,7 +268,7 @@ def test_execution_ignore_error_handling(testing_environment: TestingEnvironment
 
     assert len(faulty_files) == 0
     correct_filenames = [file.filename for file in correct_files]
-    assert "sudoers" in correct_filenames
+    assert "/etc/sudoers" in correct_filenames
 
     execution_results = plugin.execute(inputs=[], context=TestExecutionContext())
     assert len(list(execution_results.entities)) > 0
@@ -282,4 +282,4 @@ def test_preview_with_warning_error_handling(testing_environment: TestingEnviron
     plugin.path = "/etc"
     preview = plugin.preview_results()
     assert "entities were found that the current user has no access to" in preview
-    assert testing_environment.restricted_file in preview
+    assert "restricted.txt" in preview
