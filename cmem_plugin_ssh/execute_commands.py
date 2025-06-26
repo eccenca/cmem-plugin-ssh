@@ -1,7 +1,8 @@
 """Execute command task workflow plugin"""
-
+import os
 import tempfile
 from collections.abc import Sequence
+from pathlib import Path
 
 import paramiko
 from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
@@ -262,11 +263,12 @@ class ExecuteCommands(WorkflowPlugin):
 
             if self.output_method == FILE_OUTPUT:
                 output_bytes = stdout.read()
-                with tempfile.NamedTemporaryFile("wb") as tmp_file:
-                    tmp_file.write(output_bytes)
-                    tmp_path = tmp_file.name
+                tmp_dir = tempfile.mkdtemp()
+                tmp_path = Path(tmp_dir) / "stdout.bin"
+                with Path.open(tmp_path, "wb") as f:
+                    f.write(output_bytes)
 
-                local_file = LocalFile(path=tmp_path)
+                local_file = LocalFile(path=str(tmp_path))
                 entity = FileEntitySchema().to_entity(value=local_file)
                 entities.append(entity)
 
@@ -284,11 +286,12 @@ class ExecuteCommands(WorkflowPlugin):
             entities.append(entity)
         if self.output_method == FILE_OUTPUT:
             output_bytes = stdout.read()
-            with tempfile.NamedTemporaryFile("wb") as tmp_file:
-                tmp_file.write(output_bytes)
-                tmp_path = tmp_file.name
+            tmp_dir = tempfile.mkdtemp()
+            tmp_path = Path(tmp_dir) / "stdout.bin"
+            with Path.open(tmp_path, "wb") as f:
+                f.write(output_bytes)
 
-            local_file = LocalFile(path=tmp_path)
+            local_file = LocalFile(path=str(tmp_path))
             entity = FileEntitySchema().to_entity(value=local_file)
             entities.append(entity)
 
