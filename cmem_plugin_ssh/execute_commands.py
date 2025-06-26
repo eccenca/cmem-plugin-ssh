@@ -193,9 +193,9 @@ class ExecuteCommands(WorkflowPlugin):
         self.sftp.close()
         self.ssh_client.close()
 
-    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
+    def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
-        entities = []
+        entities: list = []
         if self.input_method == "file_input":
             self.input_execution(context, entities, inputs)
 
@@ -211,7 +211,7 @@ class ExecuteCommands(WorkflowPlugin):
         )
 
     def input_execution(
-        self, context: ExecutionContext(), entities: list, inputs: Sequence[Entities]
+        self, context: ExecutionContext, entities: list, inputs: Sequence[Entities]
     ) -> None:
         """Execute the command with given input files"""
         files = inputs[0].entities
