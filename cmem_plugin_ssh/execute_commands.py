@@ -105,7 +105,8 @@ def setup_timeout(timeout: float) -> None | float:
             name="input_method",
             label="Input method",
             description="Parameter to decide weather files will be used as stdin or no input is "
-            "needed.",
+            "needed. If 'File input' is chosen, the input port will open for all entities with"
+            "the FileEntitySchema.",
             param_type=ChoiceParameterType(COMMAND_INPUT_CHOICES),
         ),
         PluginParameter(
@@ -119,7 +120,8 @@ def setup_timeout(timeout: float) -> None | float:
         PluginParameter(
             name="command",
             label="Command",
-            description="The command that will be executed on the SSH instance.",
+            description="The command that will be executed on the SSH instance. When the input"
+            "method is set to 'File input', the command will be executed over these files.",
             default_value="ls",
         ),
         PluginParameter(
