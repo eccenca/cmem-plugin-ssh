@@ -4,7 +4,7 @@ import tempfile
 from collections.abc import Sequence
 
 import paramiko
-from cmem_plugin_base.dataintegration.context import ExecutionContext
+from cmem_plugin_base.dataintegration.context import ExecutionContext, ExecutionReport
 from cmem_plugin_base.dataintegration.description import Icon, Plugin, PluginParameter
 from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
@@ -196,6 +196,13 @@ class ExecuteCommands(WorkflowPlugin):
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         entities: list = []
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(entities),
+                operation="execute",
+                operation_desc=f"executing '{self.command}'",
+            )
+        )
         if self.input_method == "file_input":
             self.input_execution(context, entities, inputs)
 
@@ -203,6 +210,15 @@ class ExecuteCommands(WorkflowPlugin):
             self.no_input_execution(entities)
 
         self.close_connections()
+
+        context.report.update(
+            ExecutionReport(
+                entity_count=len(entities),
+                operation="done",
+                operation_desc=f"executed '{self.command}'",
+            )
+        )
+
         return Entities(
             entities=iter(entities),
             schema=generate_schema()
@@ -217,6 +233,13 @@ class ExecuteCommands(WorkflowPlugin):
         files = inputs[0].entities
         for file in files:
             stdin_file = FileEntitySchema().from_entity(file)
+            context.report.update(
+                ExecutionReport(
+                    entity_count=len(entities),
+                    operation="execute",
+                    operation_desc=f"executing '{self.command}' with {stdin_file.path}",
+                )
+            )
             with stdin_file.read_stream(context.task.project_id()) as stdin:
                 input_data = stdin.read()
 
@@ -236,7 +259,7 @@ class ExecuteCommands(WorkflowPlugin):
             self.command,
             timeout=self.timeout,
         )
-        if self.output_method == STRUCTURED_OUPUT:
+        if self.output_method in (STRUCTURED_OUPUT, NO_OUTPUT):
             output = stdout.read().decode("utf-8")
             error = stderr.read().decode("utf-8")
             exit_code = stdout.channel.recv_exit_status()
