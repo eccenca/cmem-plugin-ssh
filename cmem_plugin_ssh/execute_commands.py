@@ -36,7 +36,7 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES
             label="Authentication method",
             description="The method that is used to connect to the SSH server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
-            default_value=AUTHENTICATION_CHOICES["password"],
+            default_value="password",
         ),
         PluginParameter(
             name="private_key",
