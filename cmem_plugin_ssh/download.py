@@ -34,7 +34,7 @@ from cmem_plugin_ssh.utils import (
     plugin_id="cmem_plugin_ssh-Download",
     description="Download files from a given SSH instance",
     documentation="""
-This workflow task downloades files from a specified SSH instance.
+This workflow task downloads files from a specified SSH instance.
 
 By providing the hostname, username, port and authentication method, you can specify the
 folder from which the data should be extracted.
@@ -92,6 +92,7 @@ the amount of files is too large
             label="Authentication method",
             description="The method that is used to connect to the SSH server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
+            default_value="password",
         ),
         PluginParameter(
             name="private_key",
@@ -133,6 +134,7 @@ the amount of files is too large
             "When choosing 'error' the files will not get downloaded if there"
             "is even a single file the user has no access to.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
+            default_value="error",
         ),
         PluginParameter(
             name="no_subfolder",
@@ -181,7 +183,7 @@ class DownloadFiles(WorkflowPlugin):
         self.regex = rf"{regex}"
         self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_list_schema())])
-        self.output_port = FixedSchemaPort(schema=generate_list_schema())
+        self.output_port = FixedSchemaPort(schema=FileEntitySchema())
         self.download_dir = Path()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
