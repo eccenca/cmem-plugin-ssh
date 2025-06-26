@@ -211,20 +211,24 @@ class ExecuteCommands(WorkflowPlugin):
 
         self.close_connections()
 
+        operation_desc = (
+            f"times executed '{self.command}'"
+            if len(entities) > 1
+            else f"executed '{self.command}'"
+        )
+
+        schema = generate_schema() if self.output_method == STRUCTURED_OUPUT else FileEntitySchema()
+
         context.report.update(
             ExecutionReport(
                 entity_count=len(entities),
                 operation="done",
-                operation_desc=f"executed '{self.command}'",
+                operation_desc=operation_desc,
+                sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
             )
         )
 
-        return Entities(
-            entities=iter(entities),
-            schema=generate_schema()
-            if self.output_method == STRUCTURED_OUPUT
-            else FileEntitySchema(),
-        )
+        return Entities(entities=iter(entities), schema=schema)
 
     def input_execution(
         self, context: ExecutionContext, entities: list, inputs: Sequence[Entities]
