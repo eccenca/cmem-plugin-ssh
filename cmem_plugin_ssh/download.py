@@ -34,7 +34,7 @@ from cmem_plugin_ssh.utils import (
     plugin_id="cmem_plugin_ssh-Download",
     description="Download files from a given SSH instance",
     documentation="""
-This workflow task downloades files from a specified SSH instance.
+This workflow task downloads files from a specified SSH instance.
 
 By providing the hostname, username, port and authentication method, you can specify the
 folder from which the data should be extracted.
