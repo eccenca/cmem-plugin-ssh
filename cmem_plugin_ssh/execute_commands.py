@@ -250,12 +250,25 @@ class ExecuteCommands(WorkflowPlugin):
             stdin, stdout, stderr = self.ssh_client.exec_command(self.command, timeout=self.timeout)
             stdin.write(input_data)
             stdin.channel.shutdown_write()
-
-            output = stdout.read().decode("utf-8")
-            error = stderr.read().decode("utf-8")
             exit_code = stdout.channel.recv_exit_status()
-            entity = Entity(uri=f"{self.hostname}", values=[[str(exit_code)], [output], [error]])
-            entities.append(entity)
+
+            if self.output_method in (STRUCTURED_OUPUT, NO_OUTPUT):
+                output = stdout.read().decode("utf-8")
+                error = stderr.read().decode("utf-8")
+                entity = Entity(
+                    uri=f"{self.hostname}", values=[[str(exit_code)], [output], [error]]
+                )
+                entities.append(entity)
+
+            if self.output_method == FILE_OUTPUT:
+                output_bytes = stdout.read()
+                with tempfile.NamedTemporaryFile("wb") as tmp_file:
+                    tmp_file.write(output_bytes)
+                    tmp_path = tmp_file.name
+
+                local_file = LocalFile(path=tmp_path)
+                entity = FileEntitySchema().to_entity(value=local_file)
+                entities.append(entity)
 
     def no_input_execution(self, entities: list) -> None:
         """Execute the command with no given input files"""
