@@ -23,6 +23,20 @@ from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
     plugin_id="cmem_plugin_ssh-Upload",
     description="Upload files to a given SSH instance.",
     documentation="""
+This workflow task uploads files to a given SSH instance.
+
+By providing the hostname, username, port and authentication method, you can specify the
+folder the data should be uploaded to.
+
+#### Authentication Methods:
+* **Password:** Only the password will be used for authentication. The private key field is
+ignored, even if filled.
+* **Key:** The private key will be used for authentication. If the key is encrypted, the password
+will be used to decrypt it.
+
+#### Note:
+* If a connection cannot be established within 20 seconds, a timeout occurs.
+* Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     parameters=[
