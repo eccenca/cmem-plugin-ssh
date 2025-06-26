@@ -1,5 +1,6 @@
 """Execute command task workflow plugin"""
 
+import tempfile
 from collections.abc import Sequence
 
 import paramiko
@@ -9,11 +10,21 @@ from cmem_plugin_base.dataintegration.entity import Entities, Entity, EntityPath
 from cmem_plugin_base.dataintegration.parameter.choice import ChoiceParameterType
 from cmem_plugin_base.dataintegration.parameter.password import Password, PasswordParameterType
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
-from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
-from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema
+from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort, Port
+from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema, LocalFile
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
-from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
+from cmem_plugin_ssh.utils import (
+    AUTHENTICATION_CHOICES,
+    COMMAND_INPUT_CHOICES,
+    COMMAND_OUTPUT_CHOICES,
+    FILE_INPUT,
+    FILE_OUTPUT,
+    NO_INPUT,
+    NO_OUTPUT,
+    STRUCTURED_OUPUT,
+    load_private_key,
+)
 
 
 def generate_schema() -> EntitySchema:
@@ -26,6 +37,15 @@ def generate_schema() -> EntitySchema:
             EntityPath(path="std_err"),
         ],
     )
+
+
+def setup_timeout(timeout: float) -> None | float:
+    """Configure correct timeout"""
+    if timeout < 0:
+        raise ValueError("Negative value not allowed for timeout!")
+    if timeout == 0:
+        return None
+    return timeout
 
 
 @Plugin(
@@ -82,6 +102,21 @@ def generate_schema() -> EntitySchema:
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
         PluginParameter(
+            name="input_method",
+            label="Input method",
+            description="Parameter to decide weather files will be used as stdin or no input is "
+            "needed.",
+            param_type=ChoiceParameterType(COMMAND_INPUT_CHOICES),
+        ),
+        PluginParameter(
+            name="output_method",
+            label="Output method",
+            description="Parameter to decide which type of output the user wants. This can be "
+            "either no output, a structured process output with its own schema or "
+            "a file based output",
+            param_type=ChoiceParameterType(COMMAND_OUTPUT_CHOICES),
+        ),
+        PluginParameter(
             name="command",
             label="Command",
             description="The command that will be executed on the SSH instance.",
@@ -107,6 +142,8 @@ class ExecuteCommands(WorkflowPlugin):
         private_key: str | Password,
         password: str | Password,
         path: str,
+        input_method: str,
+        output_method: str,
         command: str,
         timeout: int,
     ):
@@ -117,10 +154,12 @@ class ExecuteCommands(WorkflowPlugin):
         self.private_key = private_key
         self.password = password if isinstance(password, str) else password.decrypt()
         self.path = path
+        self.input_method = input_method
+        self.output_method = output_method
         self.command = command
-        self.timeout = timeout
-        self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=FileEntitySchema())])
-        self.output_port = FixedSchemaPort(schema=generate_schema())
+        self.timeout = setup_timeout(timeout)
+        self.input_ports = self.setup_input_port()
+        self.output_port = self.setup_output_port()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
@@ -154,23 +193,77 @@ class ExecuteCommands(WorkflowPlugin):
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities | None:
         """Execute the workflow task"""
-        input_data = None
+        entities = []
+        if self.input_method == "file_input":
+            self.input_execution(context, entities, inputs)
 
+        if self.input_method == "no_input":
+            self.no_input_execution(entities)
+
+        self.close_connections()
+        return Entities(
+            entities=iter(entities),
+            schema=generate_schema()
+            if self.output_method == STRUCTURED_OUPUT
+            else FileEntitySchema(),
+        )
+
+    def input_execution(
+        self, context: ExecutionContext(), entities: list, inputs: Sequence[Entities]
+    ) -> None:
+        """Execute the command with given input files"""
         files = inputs[0].entities
         for file in files:
             stdin_file = FileEntitySchema().from_entity(file)
             with stdin_file.read_stream(context.task.project_id()) as stdin:
                 input_data = stdin.read()
 
-        stdin, stdout, stderr = self.ssh_client.exec_command(self.command)
-        stdin.write(input_data)
-        stdin.channel.shutdown_write()
+            stdin, stdout, stderr = self.ssh_client.exec_command(self.command, timeout=self.timeout)
+            stdin.write(input_data)
+            stdin.channel.shutdown_write()
 
-        output = stdout.read().decode("utf-8")
-        error = stderr.read().decode("utf-8")
-        exit_code = stdout.channel.recv_exit_status()
-        self.close_connections()
+            output = stdout.read().decode("utf-8")
+            error = stderr.read().decode("utf-8")
+            exit_code = stdout.channel.recv_exit_status()
+            entity = Entity(uri=f"{self.hostname}", values=[[str(exit_code)], [output], [error]])
+            entities.append(entity)
 
-        entity = Entity(uri=f"{self.hostname}", values=[[str(exit_code)], [output], [error]])
+    def no_input_execution(self, entities: list) -> None:
+        """Execute the command with no given input files"""
+        stdin, stdout, stderr = self.ssh_client.exec_command(
+            self.command,
+            timeout=self.timeout,
+        )
+        if self.output_method == STRUCTURED_OUPUT:
+            output = stdout.read().decode("utf-8")
+            error = stderr.read().decode("utf-8")
+            exit_code = stdout.channel.recv_exit_status()
+            entity = Entity(uri=f"{self.hostname}", values=[[str(exit_code)], [output], [error]])
+            entities.append(entity)
+        if self.output_method == FILE_OUTPUT:
+            output_bytes = stdout.read()
+            with tempfile.NamedTemporaryFile("wb") as tmp_file:
+                tmp_file.write(output_bytes)
+                tmp_path = tmp_file.name
 
-        return Entities(entities=iter([entity]), schema=generate_schema())
+            local_file = LocalFile(path=tmp_path)
+            entity = FileEntitySchema().to_entity(value=local_file)
+            entities.append(entity)
+
+    def setup_input_port(self) -> FixedNumberOfInputs:
+        """Set up the input port depending on the set input method"""
+        if self.input_method == NO_INPUT:
+            return FixedNumberOfInputs([])
+        if self.input_method == FILE_INPUT:
+            return FixedNumberOfInputs([FixedSchemaPort(schema=FileEntitySchema())])
+        raise ValueError("Could not set up input port. Invalid input method!")
+
+    def setup_output_port(self) -> Port | None:
+        """Set up the output port depending on the set output method"""
+        if self.output_method == NO_OUTPUT:
+            return None
+        if self.output_method == STRUCTURED_OUPUT:
+            return FixedSchemaPort(schema=generate_schema())
+        if self.output_method == FILE_OUTPUT:
+            return FixedSchemaPort(schema=FileEntitySchema())
+        raise ValueError("Could not set up output port. Invalid output method!")

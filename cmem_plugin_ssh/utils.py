@@ -19,6 +19,21 @@ WARNING = "warning"
 ERROR = "error"
 ERROR_HANDLING_CHOICES = OrderedDict({IGNORE: "Ignore", WARNING: "Warning", ERROR: "Error"})
 
+NO_INPUT = "no_input"
+FILE_INPUT = "file_input"
+COMMAND_INPUT_CHOICES = OrderedDict({NO_INPUT: "No input", FILE_INPUT: "File input"})
+
+NO_OUTPUT = "no_output"
+STRUCTURED_OUPUT = "structured_output"
+FILE_OUTPUT = "file_output"
+COMMAND_OUTPUT_CHOICES = OrderedDict(
+    {
+        NO_OUTPUT: "No output",
+        STRUCTURED_OUPUT: "Structured process output",
+        FILE_OUTPUT: "File output",
+    }
+)
+
 MAX_WORKERS = 32
 
 

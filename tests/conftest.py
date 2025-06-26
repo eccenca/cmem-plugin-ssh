@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from cmem_plugin_ssh.download import DownloadFiles
+from cmem_plugin_ssh.execute_commands import ExecuteCommands
 from cmem_plugin_ssh.list import ListFiles
 from cmem_plugin_ssh.upload import UploadFiles
 from tests.fixtures import (
@@ -37,10 +38,15 @@ class TestingEnvironment:
     path: str
     regex: str
     no_subfolder: bool
+    input_method: str
+    output_method: str
+    command: str
+    timeout: float
     restricted_file: str
     list_plugin: ListFiles
     download_plugin: DownloadFiles
     upload_plugin: UploadFiles
+    execute_plugin: ExecuteCommands
     no_of_files: int = 12
 
 
@@ -57,6 +63,10 @@ def testing_environment() -> TestingEnvironment:
     error_handling = "error"
     path = "volume"
     regex = "^.*$"
+    input_method = "no_input"
+    output_method = "structured_output"
+    command = "ls -al"
+    timeout = 0
     restricted_file = "/etc/restricted.txt"
     no_subfolder = False
     list_plugin = ListFiles(
@@ -92,6 +102,19 @@ def testing_environment() -> TestingEnvironment:
         password=password,
         authentication_method=authentication_method,
     )
+    execute_plugin = ExecuteCommands(
+        hostname=hostname,
+        port=port,
+        username=username,
+        private_key=private_key,
+        path=path,
+        password=password,
+        authentication_method=authentication_method,
+        input_method=input_method,
+        output_method=output_method,
+        timeout=timeout,
+        command=command,
+    )
 
     return TestingEnvironment(
         hostname=hostname,
@@ -104,11 +127,16 @@ def testing_environment() -> TestingEnvironment:
         path=path,
         no_subfolder=no_subfolder,
         regex=regex,
+        input_method=input_method,
+        output_method=output_method,
+        timeout=timeout,
+        command=command,
         error_handling=error_handling,
         restricted_file=restricted_file,
         list_plugin=list_plugin,
         download_plugin=download_plugin,
         upload_plugin=upload_plugin,
+        execute_plugin=execute_plugin,
     )
 
 
