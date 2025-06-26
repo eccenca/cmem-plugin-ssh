@@ -183,7 +183,7 @@ class DownloadFiles(WorkflowPlugin):
         self.regex = rf"{regex}"
         self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_list_schema())])
-        self.output_port = FixedSchemaPort(schema=generate_list_schema())
+        self.output_port = FixedSchemaPort(schema=FileEntitySchema())
         self.download_dir = Path()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
