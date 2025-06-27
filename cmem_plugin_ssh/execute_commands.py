@@ -63,7 +63,7 @@ folder in which the command should be executed in.
 * **No input:** The command will be executed with no input attached to the plugin. Stdin
 is non-existent in this case.
 * **File input:** The command will be executed with the stdin being represented by the
-files that are connected via the input port of the plugin. This also allows for looping 
+files that are connected via the input port of the plugin. This also allows for looping
 over multiple files executing the same command over them.
 
 
@@ -292,10 +292,10 @@ class ExecuteCommands(WorkflowPlugin):
             if self.output_method == FILE_OUTPUT:
                 output_bytes = stdout.read()
                 tmp_dir = tempfile.mkdtemp()
-                tmp_path = Path(tmp_dir) / f"{stdin_file.path}_stdout.bin"
+                input_filename = Path(stdin_file.path).name
+                tmp_path = Path(tmp_dir) / f"{input_filename}_stdout.bin"
                 with Path.open(tmp_path, "wb") as f:
                     f.write(output_bytes)
-
                 local_file = LocalFile(path=str(tmp_path))
                 entity = FileEntitySchema().to_entity(value=local_file)
                 entities.append(entity)
