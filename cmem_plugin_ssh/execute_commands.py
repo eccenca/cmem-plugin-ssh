@@ -1,5 +1,5 @@
 """Execute command task workflow plugin"""
-import os
+
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
@@ -264,7 +264,7 @@ class ExecuteCommands(WorkflowPlugin):
             if self.output_method == FILE_OUTPUT:
                 output_bytes = stdout.read()
                 tmp_dir = tempfile.mkdtemp()
-                tmp_path = Path(tmp_dir) / "stdout.bin"
+                tmp_path = Path(tmp_dir) / f"{stdin_file.path}_stdout.bin"
                 with Path.open(tmp_path, "wb") as f:
                     f.write(output_bytes)
 
