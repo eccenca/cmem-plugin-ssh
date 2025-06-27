@@ -54,6 +54,34 @@ def setup_timeout(timeout: float) -> None | float:
     plugin_id="cmem_plugin_ssh-Execute",
     description="Execute commands on a given SSH instance.",
     documentation="""
+This workflow task executes commands on a given SSH instance.
+
+By providing the hostname, username, port and authentication method, you can specify the
+folder in which the command should be executed in.
+
+#### Input Methods:
+* **No input:** The command will be executed with no input attached to the plugin. Stdin
+is non-existent in this case.
+* **File input:** The command will be executed with the stdin being represented by the
+files that are connected via the input port of the plugin. This also allows for looping 
+over multiple files executing the same command over them.
+
+
+#### Output Methods:
+* **Structured process output:** The output will produce entities with its own schema including
+the stdout and stderr as well as the exit code to confirm the execution of the command.
+* **File output:** The stdout will be converted into a file a be provided for further use.
+* **No output:** The output port will be closed.
+
+#### Authentication Methods:
+* **Password:** Only the password will be used for authentication. The private key field is
+ignored, even if filled.
+* **Key:** The private key will be used for authentication. If the key is encrypted, the password
+will be used to decrypt it.
+
+#### Note:
+* If a connection cannot be established within 20 seconds, a timeout occurs.
+* Currently supported key types are: RSA, DSS, ECDSA, Ed25519.
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     parameters=[
