@@ -9,4 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 ### Added
 
 - initial version
-
+- List Plugin
+  - List files from a given SSH instance
+- Download Plugin
+  - Download files from a given SSH instance
+- Upload Plugin
+  - Upload files from a given SSH instance

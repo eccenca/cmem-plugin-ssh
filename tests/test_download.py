@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext
 
+from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.retrieval import SSHRetrieval
 from tests.conftest import TestingEnvironment
 
@@ -140,3 +141,20 @@ def test_download_with_input_warning(testing_environment: TestingEnvironment) ->
             inputs=list_result, context=TestExecutionContext()
         )
         assert len(list(download_results.entities)) == 0
+
+
+def test_plugin_password_authentication_only(testing_environment: TestingEnvironment) -> None:
+    """Test plugin execution using only password (no private key)"""
+    plugin = DownloadFiles(
+        hostname=testing_environment.hostname,
+        port=testing_environment.port,
+        username=testing_environment.username,
+        password=testing_environment.password,
+        private_key="",
+        authentication_method="password",
+        path=testing_environment.path,
+        regex=testing_environment.regex,
+        no_subfolder=testing_environment.no_subfolder,
+        error_handling=testing_environment.error_handling,
+    )
+    assert plugin is not None
