@@ -246,7 +246,7 @@ class ExecuteCommands(WorkflowPlugin):
             else f"executed '{self.command}'"
         )
 
-        schema = generate_schema() if self.output_method == STRUCTURED_OUPUT else FileEntitySchema()
+        schema = FileEntitySchema() if self.output_method == FILE_OUTPUT else generate_schema()
 
         context.report.update(
             ExecutionReport(
