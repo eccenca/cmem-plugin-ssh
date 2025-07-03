@@ -43,7 +43,7 @@ will be used to decrypt it.
         PluginParameter(
             name="hostname",
             label="Hostname",
-            description="Hostname to connect to.Usually in the form of an IP address",
+            description="Hostname to connect to. Usually in the form of an IP address",
         ),
         PluginParameter(
             name="port",
