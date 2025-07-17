@@ -1,5 +1,7 @@
 """Upload SSH files workflow task"""
 
+import gzip
+import io
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -16,6 +18,12 @@ from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
+
+
+def _is_gzip(stream: io.BufferedReader) -> bool:
+    head = stream.read(2)
+    stream.seek(0)
+    return head == b"\x1f\x8b"
 
 
 @Plugin(
@@ -162,10 +170,36 @@ class UploadFiles(WorkflowPlugin):
                 )
             )
             with file.read_stream(context.task.project_id()) as input_file:
+                # Wrap input in buffered stream if needed
+                buffered = io.BufferedReader(input_file)
+
+                # Check if Gzip by peeking at first two bytes
+                if _is_gzip(buffered):
+                    decompressed_stream = gzip.GzipFile(fileobj=buffered)
+                else:
+                    decompressed_stream = buffered  # type: ignore[assignment]
+
+                # Decide whether it's text or binary (peek and try decode)
+                sample = decompressed_stream.read(1024)
+                decompressed_stream.seek(0)
+
                 try:
-                    self.sftp.putfo(input_file, f"{self.path}/{file_name}")
+                    sample.decode("utf-8")
+                    is_text = True
+                except UnicodeDecodeError:
+                    is_text = False
+
+                if is_text:
+                    stream_for_upload = io.TextIOWrapper(decompressed_stream, encoding="utf-8")
+                else:
+                    stream_for_upload = decompressed_stream  # type: ignore[assignment]
+
+                try:
+                    # Stream directly to SFTP — no full buffering
+                    self.sftp.putfo(stream_for_upload, f"{self.path}/{file_name}")  # type: ignore[arg-type]
                 except (FileNotFoundError, PermissionError, OSError) as e:
                     raise ValueError(f"An error occurred during upload: {e}") from e
+
             files.append(
                 File(
                     path=file.path,
