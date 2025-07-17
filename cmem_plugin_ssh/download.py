@@ -1,5 +1,6 @@
 """SSH download files task plugin"""
 
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -184,7 +185,7 @@ class DownloadFiles(WorkflowPlugin):
         self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_list_schema())])
         self.output_port = FixedSchemaPort(schema=FileEntitySchema())
-        self.download_dir = Path()
+        self.download_dir = tempfile.mkdtemp()
         self.ssh_client = paramiko.SSHClient()
         self.connect_ssh_client()
         self.sftp = self.ssh_client.open_sftp()
@@ -345,10 +346,10 @@ class DownloadFiles(WorkflowPlugin):
         entities = []
         for file in files[0]:
             try:
-                self.sftp.get(
-                    remotepath=file.filename, localpath=self.download_dir / Path(file.filename).name
-                )
-                entities.append(LocalFile(Path(file.filename).name))
+                remote_path = file.filename
+                local_path = self.download_dir / Path(Path(file.filename).name)
+                self.sftp.get(remotepath=remote_path, localpath=local_path)
+                entities.append(LocalFile(str(local_path)))
             except (PermissionError, OSError) as e:
                 if self.error_handling in {"ignore", "warning"}:
                     pass
@@ -371,10 +372,9 @@ class DownloadFiles(WorkflowPlugin):
                 pass
             filename = entity.values[0][0]
             try:
-                self.sftp.get(
-                    remotepath=filename, localpath=self.download_dir / Path(filename).name
-                )
-                downloaded_entities.append(LocalFile(Path(filename).name))
+                local_path = self.download_dir / Path(Path(filename).name)
+                self.sftp.get(remotepath=filename, localpath=local_path)
+                downloaded_entities.append(LocalFile(str(local_path)))
             except (PermissionError, OSError) as e:
                 if self.error_handling in {"ignore", "warning"}:
                     faulty_entities.append(LocalFile(Path(filename).name))
