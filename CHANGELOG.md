@@ -4,9 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### Changed
+
+- Use `tempfile` to create a temporary directory for downloads.
+- Added support for detecting and decompressing Gzip files during upload.
+- Improved file type detection (text vs. binary) for uploads.
+
 ## [0.6.0] 2025-07-03
 
 ### Added
+
 - Execute commands Plugin
   - Execute a given command on a given SSH instance
   - allow for File input or not input
