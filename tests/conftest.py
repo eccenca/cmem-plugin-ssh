@@ -1,5 +1,6 @@
 """Pytest configuration"""
 
+import logging
 import shutil
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.execute_commands import ExecuteCommands
 from cmem_plugin_ssh.list import ListFiles
 from cmem_plugin_ssh.upload import UploadFiles
+from docker.errors import APIError
 from tests.fixtures import (
     SSH_HOSTNAME,
     SSH_PASSWORD,
@@ -20,6 +22,8 @@ from tests.fixtures import (
     SSH_PRIVATE_KEY_WITH_PASSWORD,
     SSH_USERNAME,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -154,11 +158,13 @@ DOCKER_DIR = Path(__file__).parent.parent / "docker"
 @pytest.fixture(scope="session")
 def ssh_test_container() -> Generator[DockerContainer, None, None]:
     """Start the SSH test container before tests and stop it after."""
-    with (
-        DockerImage(path=DOCKER_DIR, tag="test-sample:latest") as image,
-        DockerContainer(str(image))
-        .with_exposed_ports(22)
-        .with_volume_mapping(DOCKER_DIR / "volume", "/home/testuser/volume", "rw") as container,
-    ):
-        container.start()
-        yield container
+    try:
+        with (
+            DockerImage(path=DOCKER_DIR, tag="cmem-plugin-openssh:latest", clean_up=False) as image,
+            DockerContainer(str(image))
+            .with_exposed_ports(22)
+            .with_volume_mapping(DOCKER_DIR / "volume", "/home/testuser/volume", "rw") as container,
+        ):
+            yield container
+    except APIError:
+        logger.exception("Failed to cleanup Docker container")
