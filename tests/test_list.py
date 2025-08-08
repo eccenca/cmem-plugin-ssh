@@ -26,7 +26,7 @@ def test_private_key_with_wrong_password(testing_environment: TestingEnvironment
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_private_key_with_password_execution(testing_environment: TestingEnvironment) -> None:
@@ -78,7 +78,7 @@ def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_plugin_wrong_username(testing_environment: TestingEnvironment) -> None:
@@ -95,7 +95,7 @@ def test_plugin_wrong_username(testing_environment: TestingEnvironment) -> None:
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_plugin_wrong_port(testing_environment: TestingEnvironment) -> None:
@@ -112,7 +112,7 @@ def test_plugin_wrong_port(testing_environment: TestingEnvironment) -> None:
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> None:
@@ -129,7 +129,7 @@ def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> No
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_plugin_wrong_password(testing_environment: TestingEnvironment) -> None:
@@ -146,7 +146,7 @@ def test_plugin_wrong_password(testing_environment: TestingEnvironment) -> None:
             regex=testing_environment.regex,
             no_subfolder=testing_environment.no_subfolder,
             error_handling=testing_environment.error_handling,
-        )
+        ).execute(inputs=[], context=TestExecutionContext())
 
 
 def test_plugin_password_authentication_only(testing_environment: TestingEnvironment) -> None:

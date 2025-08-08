@@ -151,6 +151,9 @@ the amount of files is too large
 class ListFiles(WorkflowPlugin):
     """List Plugin SSH"""
 
+    ssh_client: paramiko.SSHClient
+    sftp: paramiko.SFTPClient
+
     def __init__(  # noqa: PLR0913
         self,
         hostname: str,
@@ -178,9 +181,6 @@ class ListFiles(WorkflowPlugin):
         self.max_workers = setup_max_workers(max_workers)
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_list_schema())
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
 
     def close_connections(self) -> None:
         """Close connection from sftp and ssh"""
@@ -227,6 +227,10 @@ class ListFiles(WorkflowPlugin):
             ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
         )
         entities = []
+
+        self.ssh_client = paramiko.SSHClient()
+        self.connect_ssh_client()
+        self.sftp = self.ssh_client.open_sftp()
 
         retrieval = SSHRetrieval(
             ssh_client=self.ssh_client,
