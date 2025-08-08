@@ -36,6 +36,7 @@ pytest-html = "^4.1.1"
 pytest-memray = { version = "^1.7.0",  markers = "platform_system != 'Windows'" }
 ruff = "^0.11.11"
 safety = "^1.10.3"
+testcontainers = "^4.12.0"
 types-paramiko = "^3.5.0.20250516"
 
 [build-system]
