@@ -182,12 +182,12 @@ class ListFiles(WorkflowPlugin):
         self.input_ports = FixedNumberOfInputs([])
         self.output_port = FixedSchemaPort(schema=generate_list_schema())
 
-    def close_connections(self) -> None:
+    def cleanup_ssh_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
 
-    def connect_ssh_client(self) -> None:
+    def establish_ssh_connection(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -211,6 +211,7 @@ class ListFiles(WorkflowPlugin):
 
     def preview_results(self) -> str:
         """Preview the results of an execution"""
+        self._initialize_ssh_and_sftp_connections()
         return preview_results(
             ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
@@ -220,6 +221,11 @@ class ListFiles(WorkflowPlugin):
             max_workers=self.max_workers,
         )
 
+    def _initialize_ssh_and_sftp_connections(self) -> None:
+        self.ssh_client = paramiko.SSHClient()
+        self.establish_ssh_connection()
+        self.sftp = self.ssh_client.open_sftp()
+
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         _ = inputs
@@ -228,9 +234,7 @@ class ListFiles(WorkflowPlugin):
         )
         entities = []
 
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
+        self._initialize_ssh_and_sftp_connections()
 
         retrieval = SSHRetrieval(
             ssh_client=self.ssh_client,
@@ -320,7 +324,7 @@ class ListFiles(WorkflowPlugin):
                 )
             )
 
-        self.close_connections()
+        self.cleanup_ssh_connections()
 
         return Entities(
             entities=iter(entities),

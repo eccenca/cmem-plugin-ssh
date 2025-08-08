@@ -219,7 +219,7 @@ def test_execution_warning_error_handling(testing_environment: TestingEnvironmen
     plugin = testing_environment.list_plugin
     plugin.error_handling = "warning"
     plugin.path = "/etc"
-
+    plugin._initialize_ssh_and_sftp_connections()  # noqa: SLF001
     retrieval = SSHRetrieval(
         ssh_client=plugin.ssh_client,
         no_subfolder=plugin.no_subfolder,
@@ -249,6 +249,7 @@ def test_execution_ignore_error_handling(testing_environment: TestingEnvironment
     plugin = testing_environment.list_plugin
     plugin.error_handling = "ignore"
     plugin.path = "/etc"
+    plugin._initialize_ssh_and_sftp_connections()  # noqa: SLF001
 
     retrieval = SSHRetrieval(
         ssh_client=plugin.ssh_client,
