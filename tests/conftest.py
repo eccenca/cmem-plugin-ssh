@@ -1,11 +1,13 @@
 """Pytest configuration"""
 
 import shutil
-import subprocess
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from testcontainers.core.container import DockerContainer
+from testcontainers.core.image import DockerImage
 
 from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.execute_commands import ExecuteCommands
@@ -14,7 +16,6 @@ from cmem_plugin_ssh.upload import UploadFiles
 from tests.fixtures import (
     SSH_HOSTNAME,
     SSH_PASSWORD,
-    SSH_PORT,
     SSH_PRIVATE_KEY,
     SSH_PRIVATE_KEY_WITH_PASSWORD,
     SSH_USERNAME,
@@ -51,10 +52,10 @@ class TestingEnvironment:
 
 
 @pytest.fixture
-def testing_environment() -> TestingEnvironment:
+def testing_environment(ssh_test_container: DockerContainer) -> TestingEnvironment:
     """Provide testing environment"""
     hostname = SSH_HOSTNAME
-    port = SSH_PORT
+    port = ssh_test_container.get_exposed_port(22)
     username = SSH_USERNAME
     authentication_method = "key"
     private_key = SSH_PRIVATE_KEY
@@ -147,21 +148,17 @@ def get_compose_cmd() -> list[str]:
     return ["docker", "compose"]
 
 
-DOCKER_COMPOSE_DIR = Path(__file__).parent.parent / "docker"
-DOCKER_COMPOSE_FILE = "docker-compose.yml"
+DOCKER_DIR = Path(__file__).parent.parent / "docker"
 
 
-@pytest.fixture(scope="session", autouse=True)
-def ssh_test_container():  # noqa: ANN201
+@pytest.fixture(scope="session")
+def ssh_test_container() -> Generator[DockerContainer, None, None]:
     """Start the SSH test container before tests and stop it after."""
-    subprocess.run(  # noqa: S603
-        [*get_compose_cmd(), "-f", DOCKER_COMPOSE_FILE, "up", "--build", "-d"],
-        cwd=DOCKER_COMPOSE_DIR,
-        check=True,
-    )
-    yield
-    subprocess.run(  # noqa: S603
-        [*get_compose_cmd(), "-f", DOCKER_COMPOSE_FILE, "down", "--rmi", "all"],
-        cwd=DOCKER_COMPOSE_DIR,
-        check=True,
-    )
+    with (
+        DockerImage(path=DOCKER_DIR, tag="test-sample:latest") as image,
+        DockerContainer(str(image))
+        .with_exposed_ports(22)
+        .with_volume_mapping(DOCKER_DIR / "volume", "/home/testuser/volume", "rw") as container,
+    ):
+        container.start()
+        yield container
