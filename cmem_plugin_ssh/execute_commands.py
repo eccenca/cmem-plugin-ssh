@@ -99,7 +99,7 @@ will be used to decrypt it.
         PluginParameter(
             name="username",
             label="Username",
-            description="The username of which a connection will be instantiated.",
+            description="The username with which a connection will be instantiated.",
         ),
         PluginParameter(
             name="authentication_method",
@@ -119,21 +119,21 @@ will be used to decrypt it.
             name="password",
             label="Password",
             description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH or is used to decrypt the SSH private key",
+            "connect via password to SSH, or to decrypt the SSH private key",
             param_type=PasswordParameterType(),
             default_value="",
         ),
         PluginParameter(
             name="path",
             label="Path",
-            description="The currently selected path withing your SSH instance.",
+            description="The currently selected path within your SSH instance.",
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
         PluginParameter(
             name="input_method",
             label="Input method",
-            description="Parameter to decide weather files will be used as stdin or no input is "
+            description="Parameter to decide whether files will be used as stdin or no input is "
             "needed. If 'File input' is chosen, the input port will open for all entities with"
             "the FileEntitySchema.",
             param_type=ChoiceParameterType(COMMAND_INPUT_CHOICES),
@@ -142,7 +142,7 @@ will be used to decrypt it.
             name="output_method",
             label="Output method",
             description="Parameter to decide which type of output the user wants. This can be "
-            "either no output, a structured process output with its own schema or "
+            "either no output, a structured process output with its own schema, or "
             "a file based output",
             param_type=ChoiceParameterType(COMMAND_OUTPUT_CHOICES),
         ),
