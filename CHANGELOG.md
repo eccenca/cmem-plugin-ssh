@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ## [Unreleased]
 
+### Changed
+
+- Refactor: move connection test from init to execute phase
+    - Affected tasks:
+      - DownloadFiles
+      - ExecuteCommands
+      - ListFiles
+      - UploadFiles
+
 ### Fixed
 
 - Fix typos and grammar in parameter descriptions
