@@ -98,6 +98,9 @@ will be used to decrypt it.
 class UploadFiles(WorkflowPlugin):
     """Upload Plugin SSH"""
 
+    ssh_client: paramiko.SSHClient
+    sftp: paramiko.SFTPClient
+
     def __init__(  # noqa: PLR0913
         self,
         hostname: str,
@@ -117,11 +120,8 @@ class UploadFiles(WorkflowPlugin):
         self.path = path
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=FileEntitySchema())])
         self.output_port = None
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
 
-    def connect_ssh_client(self) -> None:
+    def establish_ssh_connection(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -143,10 +143,15 @@ class UploadFiles(WorkflowPlugin):
                 timeout=20,
             )
 
-    def close_connections(self) -> None:
+    def cleanup_ssh_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
+
+    def _initialize_ssh_and_sftp_connections(self) -> None:
+        self.ssh_client = paramiko.SSHClient()
+        self.establish_ssh_connection()
+        self.sftp = self.ssh_client.open_sftp()
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
@@ -154,6 +159,8 @@ class UploadFiles(WorkflowPlugin):
         _ = context
         if len(inputs) == 0:
             raise ValueError("No input was given!")
+
+        self._initialize_ssh_and_sftp_connections()
 
         files: list = []
         schema = FileEntitySchema()
@@ -219,5 +226,5 @@ class UploadFiles(WorkflowPlugin):
                 sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
             )
         )
-        self.close_connections()
+        self.cleanup_ssh_connections()
         return Entities(entities=iter(entities), schema=schema)

@@ -158,6 +158,9 @@ the amount of files is too large
 class DownloadFiles(WorkflowPlugin):
     """SSH Workflow Plugin: File download"""
 
+    ssh_client: paramiko.SSHClient
+    sftp: paramiko.SFTPClient
+
     def __init__(  # noqa: PLR0913
         self,
         hostname: str,
@@ -186,11 +189,8 @@ class DownloadFiles(WorkflowPlugin):
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=generate_list_schema())])
         self.output_port = FixedSchemaPort(schema=FileEntitySchema())
         self.download_dir = tempfile.mkdtemp()
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
 
-    def connect_ssh_client(self) -> None:
+    def establish_ssh_connection(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -212,13 +212,19 @@ class DownloadFiles(WorkflowPlugin):
                 timeout=20,
             )
 
-    def close_connections(self) -> None:
+    def cleanup_ssh_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
 
+    def _initialize_ssh_and_sftp_connections(self) -> None:
+        self.ssh_client = paramiko.SSHClient()
+        self.establish_ssh_connection()
+        self.sftp = self.ssh_client.open_sftp()
+
     def preview_results(self) -> str:
         """Preview the results of an execution"""
+        self._initialize_ssh_and_sftp_connections()
         return preview_results(
             ssh_client=self.ssh_client,
             no_subfolder=self.no_subfolder,
@@ -232,6 +238,8 @@ class DownloadFiles(WorkflowPlugin):
         """Execute the workflow task"""
         _ = inputs
         schema = FileEntitySchema()
+
+        self._initialize_ssh_and_sftp_connections()
 
         context.report.update(
             ExecutionReport(entity_count=0, operation="wait", operation_desc="files listed.")
@@ -286,7 +294,7 @@ class DownloadFiles(WorkflowPlugin):
 
         self.update_context(context, entities, files, schema)
 
-        self.close_connections()
+        self.cleanup_ssh_connections()
 
         return Entities(entities=iter(entities), schema=schema)
 
