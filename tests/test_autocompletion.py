@@ -17,7 +17,6 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
         plugin.private_key,
         plugin.password,
         plugin.authentication_method,
-        plugin.path,
     ]
     autocompletion = DirectoryParameterType(url_expand="", display_name="")
     autocompletion_result = autocompletion.autocomplete(
@@ -27,10 +26,7 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
     )
 
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/TextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
+    assert "/" in autocompletion_values
 
     autocompletion_result = autocompletion.autocomplete(
         query_terms=[""],
@@ -38,48 +34,68 @@ def test_autocompletion(testing_environment: TestingEnvironment) -> None:
         context=TestPluginContext(),
     )
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/TextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
+    for f in [
+        "/bin",
+        "/boot",
+        "/dev",
+        "/etc",
+        "/home",
+        "/lib",
+        "/lib64",
+        "/media",
+        "/mnt",
+        "/opt",
+        "/proc",
+        "/restricted",
+        "/root",
+        "/run",
+        "/sbin",
+        "/srv",
+        "/sys",
+        "/tmp",  # noqa : S108
+        "/usr",
+        "/var",
+        "/",
+    ]:
+        assert f in autocompletion_values
 
     autocompletion_result = autocompletion.autocomplete(
-        query_terms=["volume/MoreTextFiles"],
+        query_terms=["/home/testuser/volume/MoreTextFiles/"],
         depend_on_parameter_values=depends_on,
         context=TestPluginContext(),
     )
 
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles" in autocompletion_values
-    assert "/home/testuser/volume/MoreTextFiles/EvenMoreFiles2" in autocompletion_values
+    for f in [
+        "/home/testuser/volume/MoreTextFiles/EvenMoreFiles",
+        "/home/testuser/volume/MoreTextFiles/EvenMoreFiles2",
+        "/home/testuser/volume/MoreTextFiles",
+    ]:
+        assert f in autocompletion_values
 
     autocompletion_result = autocompletion.autocomplete(
-        query_terms=[".."],
+        query_terms=["/bin"],
         depend_on_parameter_values=depends_on,
         context=TestPluginContext(),
     )
 
     autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser" in autocompletion_values
-    assert "/home" in autocompletion_values
+    for f in ["/bin", "/sbin", "/"]:
+        assert f in autocompletion_values
 
-    depends_on[6] = ""
     autocompletion_result = autocompletion.autocomplete(
-        query_terms=[""],
+        query_terms=["/home/testuser/vol"],
         depend_on_parameter_values=depends_on,
         context=TestPluginContext(),
     )
-    autocompletion_values = [a.value for a in autocompletion_result]
-    assert "/home/testuser/volume" in autocompletion_values
-    assert "/home/testuser/.ssh" in autocompletion_values
-    assert "/home/testuser" in autocompletion_values
 
-    depends_on[6] = "/restricted"
+    autocompletion_values = [a.value for a in autocompletion_result]
+    for f in ["/home/testuser/volume", "/home/testuser"]:
+        assert f in autocompletion_values
+
     with pytest.raises(ValueError, match=r"Permission denied"):
         autocompletion.autocomplete(
-            query_terms=["/restricted"],
+            query_terms=["/restricted/"],
             depend_on_parameter_values=depends_on,
             context=TestPluginContext(),
         )
@@ -99,9 +115,10 @@ def test_path_autocompletion_order(testing_environment: TestingEnvironment) -> N
     ]
     autocompletion = DirectoryParameterType(url_expand="", display_name="")
     autocompletion_result = autocompletion.autocomplete(
-        query_terms=["volume"],
+        query_terms=["/home/testuser/volume/"],
         depend_on_parameter_values=depends_on,
         context=TestPluginContext(),
     )
     assert "/home/testuser/volume/MoreTextFiles" in autocompletion_result[0].label
-    assert "home/testuser" in autocompletion_result[-1].label
+    assert "/home/testuser/volume/TextFiles" in autocompletion_result[1].label
+    assert "home/testuser/volume" in autocompletion_result[2].label

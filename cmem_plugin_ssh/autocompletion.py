@@ -58,6 +58,16 @@ def close_connection(sftp: SFTPClient, ssh_client: SSHClient) -> None:
     ssh_client.close()
 
 
+def _get_parent_folder(path: str) -> str:
+    paths = path.split("/")
+    return "/".join(paths[:-1])
+
+
+def _get_incomplete_folder(path: str) -> str:
+    paths = path.split("/")
+    return paths[-1]
+
+
 class DirectoryParameterType(StringParameterType):
     """Autocomplete class for folders on the ssh instance"""
 
@@ -77,7 +87,6 @@ class DirectoryParameterType(StringParameterType):
         "private_key",
         "password",
         "authentication_method",
-        "path",
     ]
 
     def autocomplete(
@@ -89,17 +98,36 @@ class DirectoryParameterType(StringParameterType):
         """Autocomplete the folders"""
         _ = context
         result = []
-        entered_directory = "".join(query_terms)
-        selected_path = depend_on_parameter_values[6]
-
+        entered_directory = " ".join(query_terms)
+        parent_folder = _get_parent_folder(entered_directory)
+        incomplete_term = _get_incomplete_folder(entered_directory)
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # noqa: S507
         connect_ssh_client(depend_on_parameter_values, ssh_client)
 
         sftp = ssh_client.open_sftp()
 
-        if selected_path == "":
-            sftp.chdir(None)
+        if parent_folder == "":
+            sftp.chdir("/")
+            files_and_folders = self.list_folders(sftp)
+            folders = [
+                f.filename
+                for f in files_and_folders
+                if f.st_mode is not None and stat.S_ISDIR(f.st_mode)
+            ]
+            current_dir = sftp.normalize(".")
+            result = [
+                Autocompletion(
+                    value=current_dir + f,
+                    label=current_dir + f,
+                )
+                for f in folders
+                if incomplete_term in f
+            ]
+            sort_suggestions(result, query_terms)
+            result.append(Autocompletion(value=current_dir, label=current_dir))
+        else:
+            sftp.chdir(parent_folder)
             files_and_folders = self.list_folders(sftp)
             folders = [
                 f.filename
@@ -113,47 +141,12 @@ class DirectoryParameterType(StringParameterType):
                     label=current_dir + "/" + f if current_dir != "/" else "/" + f,
                 )
                 for f in folders
+                if incomplete_term in f
             ]
             sort_suggestions(result, query_terms)
             result.append(Autocompletion(value=current_dir, label=current_dir))
-            parent_dir = (
-                current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
-            )
-            result.append(Autocompletion(value=parent_dir, label=parent_dir))
-            self.suggestions = result
-            close_connection(sftp, ssh_client)
-            return self.suggestions
-
-        if selected_path != "" and entered_directory == "":
-            close_connection(sftp, ssh_client)
-            return self.suggestions
-
-        if entered_directory:
-            sftp.chdir(entered_directory)
-            files_and_folders = self.list_folders(sftp)
-            folders = [
-                f.filename
-                for f in files_and_folders
-                if f.st_mode is not None and stat.S_ISDIR(f.st_mode)
-            ]
-            current_dir = sftp.normalize(".")
-            result = [
-                Autocompletion(
-                    value=current_dir + "/" + f if current_dir != "/" else "/" + f,
-                    label=current_dir + "/" + f if current_dir != "/" else "/" + f,
-                )
-                for f in folders
-            ]
-            sort_suggestions(result, query_terms)
-            result.append(Autocompletion(value=current_dir, label=current_dir))
-            parent_dir = (
-                current_dir.rsplit("/", 1)[0] or "/" if not current_dir.endswith("/") else "/"
-            )
-            if sftp.getcwd() != "/":
-                result.append(Autocompletion(value=parent_dir, label=parent_dir))
-            self.suggestions = result
-            close_connection(sftp, ssh_client)
-            return self.suggestions
+        self.suggestions = result
+        close_connection(sftp, ssh_client)
 
         return self.suggestions
 
