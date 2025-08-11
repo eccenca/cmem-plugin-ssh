@@ -1,7 +1,6 @@
 """Pytest configuration"""
 
 import logging
-import shutil
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
@@ -143,13 +142,6 @@ def testing_environment(ssh_test_container: DockerContainer) -> TestingEnvironme
         upload_plugin=upload_plugin,
         execute_plugin=execute_plugin,
     )
-
-
-def get_compose_cmd() -> list[str]:
-    """Get the correct compose command for environment"""
-    if shutil.which("docker-compose"):
-        return ["docker-compose"]
-    return ["docker", "compose"]
 
 
 DOCKER_DIR = Path(__file__).parent / "docker"
