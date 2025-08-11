@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from docker.errors import APIError
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.image import DockerImage
 
@@ -13,7 +14,6 @@ from cmem_plugin_ssh.download import DownloadFiles
 from cmem_plugin_ssh.execute_commands import ExecuteCommands
 from cmem_plugin_ssh.list import ListFiles
 from cmem_plugin_ssh.upload import UploadFiles
-from docker.errors import APIError
 from tests.fixtures import (
     SSH_HOSTNAME,
     SSH_PASSWORD,
