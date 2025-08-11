@@ -106,7 +106,11 @@ the amount of files is too large
         PluginParameter(
             name="path",
             label="Path",
-            description="The currently selected path within your SSH instance. Auto-completion starts from user home folder, use '..' for parent directory or '/' for root directory.",
+            description=(
+                "The currently selected path within your SSH instance."
+                " Auto-completion starts from user home folder, use '..' for parent directory"
+                " or '/' for root directory."
+            ),
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
