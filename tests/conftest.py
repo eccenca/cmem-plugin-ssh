@@ -152,7 +152,7 @@ def get_compose_cmd() -> list[str]:
     return ["docker", "compose"]
 
 
-DOCKER_DIR = Path(__file__).parent.parent / "docker"
+DOCKER_DIR = Path(__file__).parent / "docker"
 
 
 @pytest.fixture(scope="session")
