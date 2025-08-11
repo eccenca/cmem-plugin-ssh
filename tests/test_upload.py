@@ -1,7 +1,5 @@
 """Upload ssh files workflow task test suite"""
 
-from pathlib import Path
-
 import pytest
 from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.typed_entities.file import (
@@ -11,13 +9,13 @@ from cmem_plugin_base.dataintegration.typed_entities.file import (
 from cmem_plugin_base.testing import TestExecutionContext
 
 from cmem_plugin_ssh.upload import UploadFiles
-from tests.conftest import TestingEnvironment
+from tests.conftest import DOCKER_DIR, TestingEnvironment
 
 
 def test_upload_local_file(testing_environment: TestingEnvironment) -> None:
     """Test upload with a given input file"""
     schema = FileEntitySchema()
-    test_file_path = Path(__file__).parent.parent / "docker" / "volume" / "RootFile.txt"
+    test_file_path = DOCKER_DIR / "volume" / "RootFile.txt"
     files = [LocalFile(path=str(test_file_path.resolve()), mime="")]
     entities = [schema.to_entity(file) for file in files]
     input_entities = Entities(entities=iter(entities), schema=schema)
@@ -38,7 +36,7 @@ def test_no_input(testing_environment: TestingEnvironment) -> None:
 def test_upload_fail_missing_permission(testing_environment: TestingEnvironment) -> None:
     """Test error throwing when trying to upload to folder with no permission"""
     schema = FileEntitySchema()
-    test_file_path = Path(__file__).parent.parent / "docker" / "volume" / "RootFile.txt"
+    test_file_path = DOCKER_DIR / "volume" / "RootFile.txt"
     files = [LocalFile(path=str(test_file_path.resolve()), mime="")]
     entities = [schema.to_entity(file) for file in files]
     input_entities = Entities(entities=iter(entities), schema=schema)
