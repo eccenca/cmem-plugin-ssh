@@ -68,7 +68,7 @@ the amount of files is too large
         PluginParameter(
             name="hostname",
             label="Hostname",
-            description="Hostname to connect to.Usually in the form of an IP address",
+            description="Hostname to connect to. Usually in the form of an IP address",
         ),
         PluginParameter(
             name="port",
@@ -79,7 +79,7 @@ the amount of files is too large
         PluginParameter(
             name="username",
             label="Username",
-            description="The username of which a connection will be instantiated.",
+            description="The username with which a connection will be instantiated.",
         ),
         PluginParameter(
             name="authentication_method",
@@ -99,7 +99,7 @@ the amount of files is too large
             name="password",
             label="Password",
             description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH or is used to decrypt the SSH private key",
+            "connect via password to SSH, or to decrypt the SSH private key",
             param_type=PasswordParameterType(),
             default_value="",
         ),
