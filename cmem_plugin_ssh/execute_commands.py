@@ -99,7 +99,7 @@ will be used to decrypt it.
         PluginParameter(
             name="username",
             label="Username",
-            description="The username of which a connection will be instantiated.",
+            description="The username with which a connection will be instantiated.",
         ),
         PluginParameter(
             name="authentication_method",
@@ -119,21 +119,25 @@ will be used to decrypt it.
             name="password",
             label="Password",
             description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH or is used to decrypt the SSH private key",
+            "connect via password to SSH, or to decrypt the SSH private key",
             param_type=PasswordParameterType(),
             default_value="",
         ),
         PluginParameter(
             name="path",
             label="Path",
-            description="The currently selected path withing your SSH instance.",
+            description=(
+                "The currently selected path within your SSH instance."
+                " Auto-completion starts from user home folder, use '..' for parent directory"
+                " or '/' for root directory."
+            ),
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
         PluginParameter(
             name="input_method",
             label="Input method",
-            description="Parameter to decide weather files will be used as stdin or no input is "
+            description="Parameter to decide whether files will be used as stdin or no input is "
             "needed. If 'File input' is chosen, the input port will open for all entities with"
             "the FileEntitySchema.",
             param_type=ChoiceParameterType(COMMAND_INPUT_CHOICES),
@@ -142,7 +146,7 @@ will be used to decrypt it.
             name="output_method",
             label="Output method",
             description="Parameter to decide which type of output the user wants. This can be "
-            "either no output, a structured process output with its own schema or "
+            "either no output, a structured process output with its own schema, or "
             "a file based output",
             param_type=ChoiceParameterType(COMMAND_OUTPUT_CHOICES),
         ),
@@ -163,6 +167,9 @@ will be used to decrypt it.
 )
 class ExecuteCommands(WorkflowPlugin):
     """Execute commands Plugin SSH"""
+
+    ssh_client: paramiko.SSHClient
+    sftp: paramiko.SFTPClient
 
     def __init__(  # noqa: PLR0913
         self,
@@ -191,11 +198,8 @@ class ExecuteCommands(WorkflowPlugin):
         self.timeout = setup_timeout(timeout)
         self.input_ports = self.setup_input_port()
         self.output_port = self.setup_output_port()
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
 
-    def connect_ssh_client(self) -> None:
+    def establish_ssh_connection(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -217,14 +221,21 @@ class ExecuteCommands(WorkflowPlugin):
                 timeout=20,
             )
 
-    def close_connections(self) -> None:
+    def cleanup_ssh_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
 
+    def _initialize_ssh_and_sftp_connections(self) -> None:
+        self.ssh_client = paramiko.SSHClient()
+        self.establish_ssh_connection()
+        self.sftp = self.ssh_client.open_sftp()
+
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
         entities: list = []
+
+        self._initialize_ssh_and_sftp_connections()
         context.report.update(
             ExecutionReport(
                 entity_count=len(entities),
@@ -238,7 +249,7 @@ class ExecuteCommands(WorkflowPlugin):
         if self.input_method == "no_input":
             self.no_input_execution(entities)
 
-        self.close_connections()
+        self.cleanup_ssh_connections()
 
         operation_desc = (
             f"times executed '{self.command}'"

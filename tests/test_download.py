@@ -31,6 +31,7 @@ def test_download_restricted_file_warning(testing_environment: TestingEnvironmen
     plugin.error_handling = "warning"
     plugin.path = "/etc"
     plugin.regex = "^.*$"
+    plugin._initialize_ssh_and_sftp_connections()  # noqa: SLF001
 
     retrieval = SSHRetrieval(
         ssh_client=plugin.ssh_client,
@@ -107,6 +108,7 @@ def test_download_with_input_warning(testing_environment: TestingEnvironment) ->
 
     download_plugin = testing_environment.download_plugin
     download_plugin.error_handling = "warning"
+    download_plugin._initialize_ssh_and_sftp_connections()  # noqa: SLF001
     downloaded_entities, faulty_entities = download_plugin.download_with_input(
         inputs=list_result, context=TestExecutionContext()
     )

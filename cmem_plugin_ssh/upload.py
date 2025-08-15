@@ -62,7 +62,7 @@ will be used to decrypt it.
         PluginParameter(
             name="username",
             label="Username",
-            description="The username of which a connection will be instantiated.",
+            description="The username with which a connection will be instantiated.",
         ),
         PluginParameter(
             name="authentication_method",
@@ -82,14 +82,18 @@ will be used to decrypt it.
             name="password",
             label="Password",
             description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH or is used to decrypt the SSH private key",
+            "connect via password to SSH, or to decrypt the SSH private key",
             param_type=PasswordParameterType(),
             default_value="",
         ),
         PluginParameter(
             name="path",
             label="Path",
-            description="The currently selected path withing your SSH instance.",
+            description=(
+                "The currently selected path within your SSH instance."
+                " Auto-completion starts from user home folder, use '..' for parent directory"
+                " or '/' for root directory."
+            ),
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
         ),
@@ -97,6 +101,9 @@ will be used to decrypt it.
 )
 class UploadFiles(WorkflowPlugin):
     """Upload Plugin SSH"""
+
+    ssh_client: paramiko.SSHClient
+    sftp: paramiko.SFTPClient
 
     def __init__(  # noqa: PLR0913
         self,
@@ -117,11 +124,8 @@ class UploadFiles(WorkflowPlugin):
         self.path = path
         self.input_ports = FixedNumberOfInputs([FixedSchemaPort(schema=FileEntitySchema())])
         self.output_port = None
-        self.ssh_client = paramiko.SSHClient()
-        self.connect_ssh_client()
-        self.sftp = self.ssh_client.open_sftp()
 
-    def connect_ssh_client(self) -> None:
+    def establish_ssh_connection(self) -> None:
         """Connect to the ssh client with the selected authentication method"""
         if self.authentication_method == "key":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -143,10 +147,15 @@ class UploadFiles(WorkflowPlugin):
                 timeout=20,
             )
 
-    def close_connections(self) -> None:
+    def cleanup_ssh_connections(self) -> None:
         """Close connection from sftp and ssh"""
         self.sftp.close()
         self.ssh_client.close()
+
+    def _initialize_ssh_and_sftp_connections(self) -> None:
+        self.ssh_client = paramiko.SSHClient()
+        self.establish_ssh_connection()
+        self.sftp = self.ssh_client.open_sftp()
 
     def execute(self, inputs: Sequence[Entities], context: ExecutionContext) -> Entities:
         """Execute the workflow task"""
@@ -154,6 +163,8 @@ class UploadFiles(WorkflowPlugin):
         _ = context
         if len(inputs) == 0:
             raise ValueError("No input was given!")
+
+        self._initialize_ssh_and_sftp_connections()
 
         files: list = []
         schema = FileEntitySchema()
@@ -219,5 +230,5 @@ class UploadFiles(WorkflowPlugin):
                 sample_entities=Entities(entities=iter(entities[:10]), schema=schema),
             )
         )
-        self.close_connections()
+        self.cleanup_ssh_connections()
         return Entities(entities=iter(entities), schema=schema)

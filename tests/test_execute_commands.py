@@ -1,12 +1,10 @@
 """Command execution workflow test suite"""
 
-from pathlib import Path
-
 from cmem_plugin_base.dataintegration.entity import Entities
 from cmem_plugin_base.dataintegration.typed_entities.file import FileEntitySchema, LocalFile
 from cmem_plugin_base.testing import TestExecutionContext
 
-from tests.conftest import TestingEnvironment
+from tests.conftest import DOCKER_DIR, TestingEnvironment
 
 
 def test_basic_command_execution(testing_environment: TestingEnvironment) -> None:
@@ -32,7 +30,7 @@ def test_basic_command_execution_input_files(testing_environment: TestingEnviron
     execute_plugin.command = "cat"
 
     schema = FileEntitySchema()
-    test_file_path = Path(__file__).parent.parent / "docker" / "volume" / "RootFile.txt"
+    test_file_path = DOCKER_DIR / "volume" / "RootFile.txt"
     files = [LocalFile(path=str(test_file_path.resolve()), mime="")]
     entities = [schema.to_entity(file) for file in files]
     input_entities = Entities(entities=iter(entities), schema=schema)
@@ -52,7 +50,7 @@ def test_basic_command_execution_input_files_file_output(
     execute_plugin.output_method = "file_output"
 
     schema = FileEntitySchema()
-    test_file_path = Path(__file__).parent.parent / "docker" / "volume" / "RootFile.txt"
+    test_file_path = DOCKER_DIR / "volume" / "RootFile.txt"
     files = [LocalFile(path=str(test_file_path.resolve()), mime="")]
     entities = [schema.to_entity(file) for file in files]
     input_entities = Entities(entities=iter(entities), schema=schema)
