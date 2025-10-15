@@ -14,7 +14,7 @@ from tests.conftest import TestingEnvironment
 
 def test_private_key_with_wrong_password(testing_environment: TestingEnvironment) -> None:
     """Test encrypted private key with wrong password failure"""
-    with pytest.raises(AuthenticationException, match="Authentication failed."):
+    with pytest.raises(AuthenticationException, match="Authentication failed"):
         ListFiles(
             hostname=testing_environment.hostname,
             port=testing_environment.port,
@@ -83,7 +83,7 @@ def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
 
 def test_plugin_wrong_username(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect port"""
-    with pytest.raises(AuthenticationException, match="Authentication failed."):
+    with pytest.raises(AuthenticationException, match="Authentication failed"):
         ListFiles(
             hostname=testing_environment.hostname,
             port=testing_environment.port,
@@ -134,7 +134,7 @@ def test_plugin_wrong_private_key(testing_environment: TestingEnvironment) -> No
 
 def test_plugin_wrong_password(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect private key"""
-    with pytest.raises(AuthenticationException, match="Authentication failed."):
+    with pytest.raises(AuthenticationException, match="Authentication failed"):
         ListFiles(
             hostname=testing_environment.hostname,
             port=testing_environment.port,
