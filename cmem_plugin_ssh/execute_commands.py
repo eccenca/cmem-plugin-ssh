@@ -313,7 +313,7 @@ class ExecuteCommands(WorkflowPlugin):
 
     def no_input_execution(self, entities: list) -> None:
         """Execute the command with no given input files"""
-        stdin, stdout, stderr = self.ssh_client.exec_command(
+        _, stdout, stderr = self.ssh_client.exec_command(
             self.command,
             timeout=self.timeout,
         )

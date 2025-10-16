@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 - testing infrastructure based in testcontainers
 
+### Changed
+
+- update template and ensure python 3.13 compatability
 
 ## [1.0.0] 2025-07-18
 
