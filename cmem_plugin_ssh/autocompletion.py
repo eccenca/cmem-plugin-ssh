@@ -80,6 +80,16 @@ class DirectoryParameterType(StringParameterType):
         "path",
     ]
 
+    def autocomplete_query(
+        self, query: str, depend_on_parameter_values: list[Any], context: PluginContext
+    ) -> list[Autocompletion]:
+        """Search for autocompletions based on a query string.
+
+        Override to preserve case sensitivity for accurate folder matching.
+        """
+        terms = [query for query in query.split() if query.strip()]
+        return self.autocomplete(terms, depend_on_parameter_values, context)
+
     def autocomplete(
         self,
         query_terms: list[str],
