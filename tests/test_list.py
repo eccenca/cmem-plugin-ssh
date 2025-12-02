@@ -67,9 +67,10 @@ def test_private_key_with_password_execution(testing_environment: TestingEnviron
 
 def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect port"""
+    port = testing_environment.port
     with pytest.raises(
         NoValidConnectionsError,
-        match=rf"\[Errno None\] Unable to connect to port {testing_environment.port} on 123\.45\.6\.78",
+        match=rf"\[Errno None\] Unable to connect to port {port} on 123\.45\.6\.78",
     ):
         ListFiles(
             hostname="123.45.6.78",
