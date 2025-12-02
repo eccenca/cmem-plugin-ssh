@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [1.1.1] 
+
+### Fixed
+
+- autocompletion for folders works now for case-sensitive folders (example: test and TEst) 
+
 ## [1.1.0] 2025-10-20
 
 ### Fixed
