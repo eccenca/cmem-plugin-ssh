@@ -5,7 +5,6 @@ import re
 import pytest
 from cmem_plugin_base.testing import TestExecutionContext, TestPluginContext
 from paramiko import AuthenticationException
-from paramiko.ssh_exception import NoValidConnectionsError
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.list import ListFiles
@@ -67,11 +66,7 @@ def test_private_key_with_password_execution(testing_environment: TestingEnviron
 
 def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect port"""
-    port = testing_environment.port
-    with pytest.raises(
-        NoValidConnectionsError,
-        match=rf"\[Errno None\] Unable to connect to port {port} on 123\.45\.6\.78",
-    ):
+    with pytest.raises(TimeoutError, match="timed out"):
         ListFiles(
             hostname="123.45.6.78",
             port=testing_environment.port,
