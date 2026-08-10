@@ -66,7 +66,7 @@ def test_private_key_with_password_execution(testing_environment: TestingEnviron
 
 def test_plugin_wrong_hostname(testing_environment: TestingEnvironment) -> None:
     """Test plugin execution with an incorrect hostname"""
-    with pytest.raises((TimeoutError, OSError), match="timed out|\\[Errno"):
+    with pytest.raises((TimeoutError, OSError), match=r"timed out|\[Errno"):
         ListFiles(
             hostname="123.45.6.78",
             port=testing_environment.port,
