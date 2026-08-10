@@ -17,7 +17,7 @@ cmem_plugin_ssh/
   execute_commands.py      # ExecuteCommands plugin – runs arbitrary SSH commands (no_input / file_input, structured_output / file_output / no_output)
   retrieval.py             # SSHRetrieval class – recursive parallel file listing with thread-local SFTP clients, regex filtering, error handling modes
   autocompletion.py        # DirectoryParameterType – case-sensitive folder autocompletion for the CMem UI
-  utils.py                 # Shared constants (AUTHENTICATION_CHOICES, ERROR_HANDLING_CHOICES), load_private_key (RSA/DSS/ECDSA/Ed25519), generate_list_schema, preview_results
+  utils.py                 # Shared constants (AUTHENTICATION_CHOICES, ERROR_HANDLING_CHOICES), load_private_key (RSA/ECDSA/Ed25519 — DSS dropped in paramiko 5.x), generate_list_schema, preview_results
 tests/
   conftest.py              # Test fixtures / SSH server via testcontainers
   fixtures.py              # Shared test helpers
@@ -30,7 +30,7 @@ tests/
 - SSH connections are established lazily in `_initialize_ssh_and_sftp_connections()` (creates `paramiko.SSHClient` + `SFTPClient`). Always call `cleanup_ssh_connections()` when done.
 - `SSHRetrieval.list_files_parallel()` does recursive directory listing using `ThreadPoolExecutor`. It uses thread-local SFTP clients (`threading.local`) to avoid cross-thread sharing of paramiko connections. Subfolder recursion is parallelized by subdirectory.
 - Autocompletion (`DirectoryParameterType.autocomplete()`) connects to the SSH server at query time; it depends on parameters 0–6 (hostname, port, username, private_key, password, authentication_method, path). Case sensitivity in `autocomplete_query` was a previous bugfix (see commit `658f0e1`).
-- Auth: supports "password" and "key" methods. `load_private_key()` strips whitespace from PEM body and tries loaders (RSAKey → DSSKey → ECDSAKey → Ed25519Key) sequentially with optional passphrase.
+- Auth: supports "password" and "key" methods. `load_private_key()` strips whitespace from PEM body and tries loaders (RSAKey → ECDSAKey → Ed25519Key) sequentially with optional passphrase; DSS/DSA keys are no longer supported (paramiko 5.x).
 
 ## Development Commands
 
@@ -48,7 +48,11 @@ All commands use `task` (Taskfile). Run `task` or `task --list` for the full lis
 | `task format:fix` | ruff format + auto-fix |
 | `task format:fix-unsafe` | ruff format + unsafe auto-fixes too |
 | `task build` | `poetry build` + export requirements.txt |
+| `task install` | Build and install plugin in Corporate Memory (requires `cmemc`) |
+| `task uninstall` | Uninstall plugin from Corporate Memory |
 | `task clean` | Remove dist, pyc, caches |
+
+**Custom tasks:** Add new tasks to `TaskfileCustom.yaml` (optionally included by the base `Taskfile.yaml`).
 
 **Running a single test:**
 ```
@@ -57,7 +61,7 @@ poetry run pytest tests/test_download.py -v
 
 ## Dependencies
 
-- **Runtime**: `paramiko >= 3.5.1`, `cmem-plugin-base ^4.19.0`
+- **Runtime**: `paramiko 5.x` (DSS/DSA removed), `cmem-plugin-base ^4.19.0`
 - **Dev**: ruff, mypy, deptry, pytest (+cov, dotenv, html, memray), trivy-py-ecc, testcontainers
 - **Python**: 3.13 (see `.python-version`)
 
