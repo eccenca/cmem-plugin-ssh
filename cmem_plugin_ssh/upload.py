@@ -14,7 +14,6 @@ from cmem_plugin_base.dataintegration.parameter.password import Password, Passwo
 from cmem_plugin_base.dataintegration.plugins import WorkflowPlugin
 from cmem_plugin_base.dataintegration.ports import FixedNumberOfInputs, FixedSchemaPort
 from cmem_plugin_base.dataintegration.typed_entities.file import File, FileEntitySchema
-from cmem_plugin_base.dataintegration.utils import setup_cmempy_user_access
 
 from cmem_plugin_ssh.autocompletion import DirectoryParameterType
 from cmem_plugin_ssh.utils import AUTHENTICATION_CHOICES, load_private_key
@@ -168,7 +167,6 @@ class UploadFiles(WorkflowPlugin):
 
         files: list = []
         schema = FileEntitySchema()
-        setup_cmempy_user_access(context.user)
 
         for entity in inputs[0].entities:
             file = schema.from_entity(entity)
@@ -180,7 +178,7 @@ class UploadFiles(WorkflowPlugin):
                     operation_desc=f"uploading {file_name}",
                 )
             )
-            with file.read_stream(context.task.project_id()) as input_file:
+            with file.read_stream(context=context) as input_file:
                 # Wrap input in buffered stream if needed
                 buffered = io.BufferedReader(input_file)
 
