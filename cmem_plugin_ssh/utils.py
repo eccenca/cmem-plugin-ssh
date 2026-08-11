@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 from cmem_plugin_base.dataintegration.entity import EntityPath, EntitySchema
 from cmem_plugin_base.dataintegration.parameter.password import Password
-from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHClient, SSHException
+from paramiko import ECDSAKey, Ed25519Key, PKey, RSAKey, SSHClient, SSHException
 
 from cmem_plugin_ssh.retrieval import SSHRetrieval
 
@@ -55,7 +55,7 @@ def load_private_key(private_key: str | Password, password: str | Password) -> P
     pkey = f"{begin}\n{body}\n{end}"
 
     key_file = io.StringIO(pkey)
-    loaders: list[type[PKey]] = [RSAKey, DSSKey, ECDSAKey, Ed25519Key]
+    loaders: list[type[PKey]] = [RSAKey, ECDSAKey, Ed25519Key]
     for loader in loaders:
         try:
             if password:

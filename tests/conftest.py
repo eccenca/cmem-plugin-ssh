@@ -148,7 +148,7 @@ DOCKER_DIR = Path(__file__).parent / "docker"
 
 
 @pytest.fixture(scope="session")
-def ssh_test_container() -> Generator[DockerContainer, None, None]:
+def ssh_test_container() -> Generator[DockerContainer]:
     """Start the SSH test container before tests and stop it after."""
     try:
         with (
