@@ -165,7 +165,7 @@ class DownloadFiles(WorkflowPlugin):
     ssh_client: paramiko.SSHClient
     sftp: paramiko.SFTPClient
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 PLR0917
         self,
         hostname: str,
         port: int,
@@ -263,9 +263,11 @@ class DownloadFiles(WorkflowPlugin):
                             entities=iter(faulty_entities), schema=FileEntitySchema()
                         ),
                         warnings=[
-                            "Some files have been ignored that the current user does not have "
-                            "access to. "
-                            "Those files have been listed below as sample entities."
+                            (
+                                "Some files have been ignored that the current user does not "
+                                "have access to. "
+                                "Those files have been listed below as sample entities."
+                            )
                         ],
                     )
                 )
@@ -337,8 +339,11 @@ class DownloadFiles(WorkflowPlugin):
                         entities=iter(faulty_entities), schema=generate_list_schema()
                     ),
                     warnings=[
-                        "Some files have been listed that the current user does not have access to."
-                        "Those files have been listed below as sample entities."
+                        (
+                            "Some files have been listed that the current user does not have "
+                            "access to. "
+                            "Those files have been listed below as sample entities."
+                        )
                     ],
                 )
             )

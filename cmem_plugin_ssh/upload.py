@@ -104,7 +104,7 @@ class UploadFiles(WorkflowPlugin):
     ssh_client: paramiko.SSHClient
     sftp: paramiko.SFTPClient
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 PLR0917
         self,
         hostname: str,
         port: int,
