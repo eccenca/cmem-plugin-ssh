@@ -5,11 +5,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
-## [Unreleased]
+## [2.0.1] 2026-09-06
 
 ### Changed
 
 - updated dependencies and template
+- rewrote the task documentation, parameter descriptions and dropdown labels of all four
+  tasks: they now describe what the tasks actually do, including the file name collisions
+  on download and upload, the unpacking of gzip content on upload, the ignored exit code
+  on command execution, and the fact that host keys are accepted without verification
 
 ### Fixed
 
