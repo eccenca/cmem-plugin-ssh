@@ -52,74 +52,75 @@ def setup_timeout(timeout: float) -> float | None:
 @Plugin(
     label="Execute commands via SSH",
     plugin_id="cmem_plugin_ssh-Execute",
-    description="Execute commands on a given SSH instance.",
+    description="Execute a command on an SSH server.",
     documentation="""
-This workflow task executes commands on a given SSH instance.
+Runs a command on an SSH server and collects what it produces.
 
-By providing the hostname, username, port and authentication method, you can specify the
-folder in which the command should be executed in.
+The input and output methods decide the shape of the task. With file input, an input
+port accepts file entities and the command runs once per incoming file, with the
+content of that file on its standard input; without it, the command runs exactly once.
+What leaves the task is either one entity per run, carrying the exit code, the standard
+output and the standard error, or one file per run holding the raw standard output, or
+nothing at all, in which case the task ends the branch of the workflow it sits in.
 
-#### Input Methods:
-* **No input:** The command will be executed with no input attached to the plugin. Stdin
-is non-existent in this case.
-* **File input:** The command will be executed with the stdin being represented by the
-files that are connected via the input port of the plugin. This also allows for looping
-over multiple files executing the same command over them.
+**Upload SSH files** and **Download SSH files** move the files a command works on, so a
+common chain is to upload files, run a command over them and download the result.
 
+#### Caveats
 
-#### Output Methods:
-* **Structured process output:** The output will produce entities with its own schema including
-the stdout and stderr as well as the exit code to confirm the execution of the command.
-* **File output:** The stdout will be converted into a file a be provided for further use.
-* **No output:** The output port will be closed.
-
-#### Authentication Methods:
-* **Password:** Only the password will be used for authentication. The private key field is
-ignored, even if filled.
-* **Key:** The private key will be used for authentication. If the key is encrypted, the password
-will be used to decrypt it.
-
-#### Note:
-* If a connection cannot be established within 20 seconds, a timeout occurs.
-* Currently supported key types are: RSA, ECDSA, Ed25519.
+* The exit code is never inspected. A failing command leaves the task successful and
+the workflow running, and the failure shows up only in the emitted exit code and
+standard error. With file output, both are dropped and the standard output is kept
+alone.
+* The command is sent as it is written and interpreted by the login shell of the
+account, without any escaping or checking, and it runs with every right that account
+has.
+* The command runs in whatever directory the account lands in on login. The configured
+directory is not entered.
+* With file input, each incoming file is read into memory as a whole before it is sent.
+* The task logs in with the configured credentials only, and offers no key of the
+machine it runs on. The host key of the server in turn is accepted as presented and
+never checked against a known hosts list.
+* Establishing the connection fails after 20 seconds.
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     parameters=[
         PluginParameter(
             name="hostname",
             label="Hostname",
-            description="Hostname to connect to. Usually in the form of an IP address",
+            description="Host name or IP address of the SSH server.",
         ),
         PluginParameter(
             name="port",
             label="Port",
-            description="The port on which the connection will be tried on. Default is 22.",
+            description="TCP port the SSH server listens on.",
             default_value=22,
         ),
         PluginParameter(
             name="username",
             label="Username",
-            description="The username with which a connection will be instantiated.",
+            description="Account to log in as.",
         ),
         PluginParameter(
             name="authentication_method",
             label="Authentication method",
-            description="The method that is used to connect to the SSH server.",
+            description="How the task authenticates against the server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
             default_value="password",
         ),
         PluginParameter(
             name="private_key",
             label="Private key",
-            description="Your private key to connect via SSH.",
+            description="Private key in PEM format, used when the authentication method is Key. "
+            "RSA, ECDSA and Ed25519 keys are supported.",
             param_type=PasswordParameterType(),
             default_value="",
         ),
         PluginParameter(
             name="password",
             label="Password",
-            description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH, or to decrypt the SSH private key",
+            description="Password of the account, or the passphrase of the private key when the "
+            "authentication method is Key.",
             param_type=PasswordParameterType(),
             default_value="",
         ),
@@ -127,9 +128,9 @@ will be used to decrypt it.
             name="path",
             label="Path",
             description=(
-                "The currently selected path within your SSH instance."
-                " Auto-completion starts from user home folder, use '..' for parent directory"
-                " or '/' for root directory."
+                "Remote directory, kept with the task but not entered before the command runs."
+                " Autocompletion starts in the home directory of the account, use '..' for the"
+                " parent directory or '/' for the root directory."
             ),
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
@@ -137,30 +138,28 @@ will be used to decrypt it.
         PluginParameter(
             name="input_method",
             label="Input method",
-            description="Parameter to decide whether files will be used as stdin or no input is "
-            "needed. If 'File input' is chosen, the input port will open for all entities with"
-            "the FileEntitySchema.",
+            description="Whether incoming files are fed to the command, which also decides "
+            "whether the task has an input port.",
             param_type=ChoiceParameterType(COMMAND_INPUT_CHOICES),
         ),
         PluginParameter(
             name="output_method",
             label="Output method",
-            description="Parameter to decide which type of output the user wants. This can be "
-            "either no output, a structured process output with its own schema, or "
-            "a file based output",
+            description="What the task emits for each run of the command, which also decides "
+            "whether the task has an output port.",
             param_type=ChoiceParameterType(COMMAND_OUTPUT_CHOICES),
         ),
         PluginParameter(
             name="command",
             label="Command",
-            description="The command that will be executed on the SSH instance. When the input"
-            "method is set to 'File input', the command will be executed over these files.",
+            description="Command line executed on the server.",
             default_value="ls",
         ),
         PluginParameter(
             name="timeout",
             label="Timeout",
-            description="A timeout for the executed command.",
+            description="Seconds the task waits for the command to send data before it gives up "
+            "and fails. Zero waits for as long as the command takes.",
             default_value=0,
         ),
     ],

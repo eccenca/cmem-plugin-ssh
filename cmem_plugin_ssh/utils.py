@@ -12,25 +12,43 @@ from cmem_plugin_ssh.retrieval import SSHRetrieval
 
 PASSWORD = "password"  # noqa: S105
 PRIVATE_KEY = "key"
-AUTHENTICATION_CHOICES = OrderedDict({PASSWORD: "Password", PRIVATE_KEY: "Key"})
+AUTHENTICATION_CHOICES = OrderedDict(
+    {
+        PASSWORD: "Password - log in with the password, ignoring the private key",
+        PRIVATE_KEY: "Key - log in with the private key, using the password only to decrypt it",
+    }
+)
 
 IGNORE = "ignore"
 WARNING = "warning"
 ERROR = "error"
-ERROR_HANDLING_CHOICES = OrderedDict({IGNORE: "Ignore", WARNING: "Warning", ERROR: "Error"})
+ERROR_HANDLING_CHOICES = OrderedDict(
+    {
+        IGNORE: "Ignore - continue silently when a file or folder cannot be read",
+        WARNING: "Warning - continue, and report the unreadable files as a warning",
+        ERROR: "Error - fail the task on the first file or folder that cannot be read",
+    }
+)
 
 NO_INPUT = "no_input"
 FILE_INPUT = "file_input"
-COMMAND_INPUT_CHOICES = OrderedDict({NO_INPUT: "No input", FILE_INPUT: "File input"})
+COMMAND_INPUT_CHOICES = OrderedDict(
+    {
+        NO_INPUT: "No input - run the command once, with an empty standard input",
+        FILE_INPUT: "File input - run the command once per incoming file, fed to its standard "
+        "input",
+    }
+)
 
 NO_OUTPUT = "no_output"
 STRUCTURED_OUPUT = "structured_output"
 FILE_OUTPUT = "file_output"
 COMMAND_OUTPUT_CHOICES = OrderedDict(
     {
-        NO_OUTPUT: "No output",
-        STRUCTURED_OUPUT: "Structured process output",
-        FILE_OUTPUT: "File output",
+        NO_OUTPUT: "No output - emit nothing, the task ends the workflow branch",
+        STRUCTURED_OUPUT: "Structured process output - emit exit code, standard output and "
+        "standard error as entities",
+        FILE_OUTPUT: "File output - emit the standard output of each run as a file",
     }
 )
 

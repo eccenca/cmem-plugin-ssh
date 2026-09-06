@@ -33,80 +33,85 @@ from cmem_plugin_ssh.utils import (
 @Plugin(
     label="Download SSH files",
     plugin_id="cmem_plugin_ssh-Download",
-    description="Download files from a given SSH instance",
+    description="Download files from an SSH server.",
     documentation="""
-This workflow task downloads files from a specified SSH instance.
+Downloads files from an SSH server into the workflow.
 
-By providing the hostname, username, port and authentication method, you can specify the
-folder from which the data should be extracted.
+What is downloaded depends on the input port. When nothing is connected, the task lists
+the configured directory itself and downloads the files matching the regular
+expression. When a file listing is connected, it downloads exactly the paths carried in
+the `file_name` value of the incoming entities, and the directory, regular expression
+and subfolder settings are then without effect. Either way the files leave the output
+port as file entities, stored in a temporary directory on the eccenca Corporate Memory
+host from where the following tasks read them.
 
-You can also define a regular expression to include or exclude specific files.
+**List SSH files** produces the listing this task accepts, so a workflow can list
+first, narrow the result down and download only what is left. **Upload SSH files**
+covers the other direction.
 
-There is also an option to prevent files in subfolders from being included.
+The **Preview results** action lists the first ten files that a run without input would
+download, without running the workflow.
 
-#### Authentication Methods:
-* **Password:** Only the password will be used for authentication. The private key field is
-ignored, even if filled.
-* **Key:** The private key will be used for authentication. If the key is encrypted, the password
-will be used to decrypt it.
+#### Caveats
 
-#### Error handling modes:
-* **Ignore:** Ignores the permission rights of files and lists downloads all files it has access to.
-Skips folders and files when there is no correct permission.
-* **Warning:** Warns the user about files that the user has no permission rights to. Downloads
-all other files and skips files folder when there is no correct permission.
-* **Error:** Throws an error when there is a single file or folder with incorrect permission rights.
-
-#### Note:
-* If a connection cannot be established within 20 seconds, a timeout occurs.
-* Currently supported key types are: RSA, ECDSA, Ed25519.
-* Setting the maximum amount of workers to more than 1 may cause a Channel Exception when
-the amount of files is too large
+* Only the plain file name of a remote file is kept. Downloaded files of the same name
+coming from different folders overwrite each other, and just one of them reaches the
+output port.
+* A file that cannot be read is dropped from the output silently with both Ignore and
+Warning. The warning names the unreadable files seen while listing, which is not
+necessarily the same set of files.
+* A folder that cannot be read is skipped silently unless the error handling is set to
+Error, and the files below it are then never downloaded.
+* The task logs in with the configured credentials only, and offers no key of the
+machine it runs on. The host key of the server in turn is accepted as presented and
+never checked against a known hosts list.
+* Establishing the connection fails after 20 seconds.
     """,
     icon=Icon(package=__package__, file_name="ssh-icon.svg"),
     actions=[
         PluginAction(
             name="preview_results",
             label="Preview results (max. 10)",
-            description="Lists 10 files as a preview.",
+            description="Connect to the server and list the first ten matching files.",
         ),
     ],
     parameters=[
         PluginParameter(
             name="hostname",
             label="Hostname",
-            description="Hostname to connect to. Usually in the form of an IP address",
+            description="Host name or IP address of the SSH server.",
         ),
         PluginParameter(
             name="port",
             label="Port",
-            description="The port on which the connection will be tried on. Default is 22.",
+            description="TCP port the SSH server listens on.",
             default_value=22,
         ),
         PluginParameter(
             name="username",
             label="Username",
-            description="The username with which a connection will be instantiated.",
+            description="Account to log in as.",
         ),
         PluginParameter(
             name="authentication_method",
             label="Authentication method",
-            description="The method that is used to connect to the SSH server.",
+            description="How the task authenticates against the server.",
             param_type=ChoiceParameterType(AUTHENTICATION_CHOICES),
             default_value="password",
         ),
         PluginParameter(
             name="private_key",
             label="Private key",
-            description="Your private key to connect via SSH.",
+            description="Private key in PEM format, used when the authentication method is Key. "
+            "RSA, ECDSA and Ed25519 keys are supported.",
             param_type=PasswordParameterType(),
             default_value="",
         ),
         PluginParameter(
             name="password",
             label="Password",
-            description="Depending on your authentication method this will either be used to"
-            "connect via password to SSH, or to decrypt the SSH private key",
+            description="Password of the account, or the passphrase of the private key when the "
+            "authentication method is Key.",
             param_type=PasswordParameterType(),
             default_value="",
         ),
@@ -114,9 +119,10 @@ the amount of files is too large
             name="path",
             label="Path",
             description=(
-                "The currently selected path within your SSH instance."
-                " Auto-completion starts from user home folder, use '..' for parent directory"
-                " or '/' for root directory."
+                "Remote directory the files are downloaded from, and ignored when a file"
+                " listing arrives on the input port. Autocompletion starts in the home"
+                " directory of the account, use '..' for the parent directory"
+                " or '/' for the root directory."
             ),
             default_value="",
             param_type=DirectoryParameterType("directories", "Folder"),
@@ -124,36 +130,30 @@ the amount of files is too large
         PluginParameter(
             name="regex",
             label="Regular expression",
-            description="A regular expression used to define which files will get downloaded.",
+            description="Regular expression a file name has to match completely to be "
+            "downloaded. It is matched against the plain file name, not against the path.",
             default_value="^.*$",
         ),
         PluginParameter(
             name="error_handling",
-            label="Error handling for missing permissions.",
-            description="A choice on how to handle errors concerning the permissions rights."
-            "When choosing 'ignore' all files get skipped if the current "
-            "user has correct permission rights."
-            "When choosing 'warning' all files get downloaded however there will be "
-            "a mention that some of the files are not under the users permissions"
-            "if there are any and these get skipped."
-            "When choosing 'error' the files will not get downloaded if there"
-            "is even a single file the user has no access to.",
+            label="Error handling",
+            description="How the task reacts to files and folders the account cannot read.",
             param_type=ChoiceParameterType(ERROR_HANDLING_CHOICES),
             default_value="error",
         ),
         PluginParameter(
             name="no_subfolder",
             label="No subfolder",
-            description="When this flag is set, only files from the current directory "
-            "will be downloaded.",
+            description="If enabled, only the given directory is searched and its subfolders are "
+            "left out.",
             default_value=False,
         ),
         PluginParameter(
             name="max_workers",
-            label="Maximum amount of workers.",
-            description="Determines the amount of workers used for concurrent thread execution "
-            "of the task. Default is 1, maximum is 32. Note that too many workers can cause a "
-            "ChannelException.",
+            label="Maximum number of workers",
+            description="Number of threads the Preview results action uses to list subfolders in "
+            "parallel, from 1 to 32. A workflow run always lists with a single thread. Too many "
+            "parallel channels make some servers refuse them with a ChannelException.",
             default_value=1,
             advanced=True,
         ),
