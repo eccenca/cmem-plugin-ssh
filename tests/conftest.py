@@ -1,6 +1,7 @@
 """Pytest configuration"""
 
 import logging
+import os
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,6 +22,11 @@ from tests.fixtures import (
     SSH_PRIVATE_KEY_WITH_PASSWORD,
     SSH_USERNAME,
 )
+
+# Ryuk, the testcontainers reaper, bind-mounts the Docker socket, which Docker Desktop
+# refuses for its per-user socket path. The fixtures below close their own containers,
+# so the reaper is redundant here. setdefault keeps an explicit override working.
+os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
 
 logger = logging.getLogger(__name__)
 

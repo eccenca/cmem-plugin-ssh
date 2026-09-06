@@ -135,6 +135,8 @@ class UploadFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -144,6 +146,8 @@ class UploadFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
 
     def cleanup_ssh_connections(self) -> None:

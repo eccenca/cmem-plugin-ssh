@@ -202,6 +202,8 @@ class ListFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -211,6 +213,8 @@ class ListFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
 
     def preview_results(self) -> str:
