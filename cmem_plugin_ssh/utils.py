@@ -90,7 +90,7 @@ def generate_list_schema() -> EntitySchema:
     )
 
 
-def preview_results(  # noqa: PLR0913
+def preview_results(  # noqa: PLR0913 PLR0917
     ssh_client: SSHClient,
     no_subfolder: bool,
     regex: str,

@@ -36,6 +36,8 @@ def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHCli
             password=pw,
             port=depend_on_parameter_values[1],
             timeout=20,
+            allow_agent=False,
+            look_for_keys=False,
         )
     elif depend_on_parameter_values[5] == "password":
         pw = (
@@ -49,6 +51,8 @@ def connect_ssh_client(depend_on_parameter_values: list[Any], ssh_client: SSHCli
             password=pw,
             port=depend_on_parameter_values[1],
             timeout=20,
+            allow_agent=False,
+            look_for_keys=False,
         )
 
 

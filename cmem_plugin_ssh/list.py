@@ -158,7 +158,7 @@ class ListFiles(WorkflowPlugin):
     ssh_client: paramiko.SSHClient
     sftp: paramiko.SFTPClient
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 PLR0917
         self,
         hostname: str,
         port: int,
@@ -202,6 +202,8 @@ class ListFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -211,6 +213,8 @@ class ListFiles(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
 
     def preview_results(self) -> str:
@@ -310,8 +314,11 @@ class ListFiles(WorkflowPlugin):
                         entities=iter(faulty_entities), schema=generate_list_schema()
                     ),
                     warnings=[
-                        "Some files have been listed that the current user does not have access to."
-                        "Those files have been listed below as sample entities."
+                        (
+                            "Some files have been listed that the current user does not have "
+                            "access to. "
+                            "Those files have been listed below as sample entities."
+                        )
                     ],
                 )
             )

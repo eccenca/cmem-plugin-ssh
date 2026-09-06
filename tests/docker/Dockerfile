@@ -1,10 +1,10 @@
-FROM debian:bullseye
+FROM debian:trixie-slim
 
-RUN apt-get update && apt-get install -y openssh-server sudo && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server sudo && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m testuser && echo 'testuser:testpassword' | chpasswd && echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-RUN mkdir /var/run/sshd && \
+RUN mkdir -p /var/run/sshd && \
     mkdir -p /home/testuser/.ssh && \
     chmod 700 /home/testuser/.ssh
 

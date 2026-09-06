@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/)
 
+## [Unreleased]
+
+### Changed
+
+- updated dependencies and template
+
+### Fixed
+
+- the plugin no longer offers the SSH agent keys and `~/.ssh` private keys of the Corporate Memory host to the remote server; only the credentials configured on the task are used
+
 ## [2.0.0] 2026-08-10
 
 ### Changed

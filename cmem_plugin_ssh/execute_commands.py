@@ -40,7 +40,7 @@ def generate_schema() -> EntitySchema:
     )
 
 
-def setup_timeout(timeout: float) -> None | float:
+def setup_timeout(timeout: float) -> float | None:
     """Configure correct timeout"""
     if timeout < 0:
         raise ValueError("Negative value not allowed for timeout!")
@@ -171,7 +171,7 @@ class ExecuteCommands(WorkflowPlugin):
     ssh_client: paramiko.SSHClient
     sftp: paramiko.SFTPClient
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 PLR0917
         self,
         hostname: str,
         port: int,
@@ -210,6 +210,8 @@ class ExecuteCommands(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
         elif self.authentication_method == "password":
             self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -219,6 +221,8 @@ class ExecuteCommands(WorkflowPlugin):
                 password=self.password,
                 port=self.port,
                 timeout=20,
+                allow_agent=False,
+                look_for_keys=False,
             )
 
     def cleanup_ssh_connections(self) -> None:
